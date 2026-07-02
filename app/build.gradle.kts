@@ -108,6 +108,9 @@ dependencies {
   // Kotlinx Serialization
   implementation(libs.kotlinx.serialization.json)
 
+  // Gson (required by spider JARs at runtime)
+  implementation("com.google.code.gson:gson:2.11.0")
+
   // Media3
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.ui)
@@ -116,6 +119,9 @@ dependencies {
   // Spider API
   implementation(project(":spider:spider-api"))
   implementation(project(":spider:spider-jar"))
+
+  // NanoHTTPD (spider proxy server)
+  implementation(libs.nanohttpd)
 
   // Testing
   testImplementation(libs.mockk)

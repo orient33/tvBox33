@@ -13,8 +13,8 @@ class NullSpider : Spider {
     override suspend fun searchContent(key: String, quick: Boolean, pg: String): String = """{"list":[]}"""
     override suspend fun playerContent(flag: String, id: String, vipFlags: List<String>): String =
         """{"url":"","parse":0}"""
-    override suspend fun proxyLocal(params: Map<String, String>): String = ""
-    override suspend fun proxy(params: Map<String, String>): String = ""
+    override suspend fun proxyLocal(params: Map<String, String>): Array<Any?> = emptyArray()
+    override suspend fun proxy(params: Map<String, String>): Array<Any?> = emptyArray()
     override fun cancelByTag(tag: String) {}
     override fun destroy() {}
 }

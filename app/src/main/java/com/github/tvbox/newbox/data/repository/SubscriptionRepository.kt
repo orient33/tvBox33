@@ -16,11 +16,24 @@ import kotlinx.serialization.json.jsonPrimitive
 interface SubscriptionRepository {
     val sources: Flow<List<SourceConfig>>
     val currentSource: Flow<SourceConfig?>
+    val currentSubscriptionUrl: StateFlow<String?>
     val sourceCounts: StateFlow<Map<String, Int>>
     suspend fun loadSubscription(url: String)
+    suspend fun loadWarehouse(parentUrl: String, warehouseUrl: String)
     suspend fun removeSubscription(url: String)
     suspend fun setCurrentSource(key: String)
+    suspend fun selectSubscription(url: String)
+    suspend fun probeSubscription(url: String): ProbeResult
 }
+
+sealed class ProbeResult {
+    data class SingleConfig(val url: String) : ProbeResult()
+    data class MultiRoute(val routes: List<RouteEntry>) : ProbeResult()
+    data class MultiWarehouse(val warehouses: List<WarehouseEntry>) : ProbeResult()
+}
+
+data class RouteEntry(val name: String, val url: String)
+data class WarehouseEntry(val name: String, val url: String)
 
 @Serializable
 data class SubscriptionJson(

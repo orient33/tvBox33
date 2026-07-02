@@ -3,7 +3,7 @@ androidGradlePlugin = "9.0.1"
 androidxCore = "1.18.0"
 androidxLifecycle = "2.10.0"
 androidxActivity = "1.13.0"
-androidxComposeBom = "2026.03.01"
+androidxComposeBom = "2026.06.00"
 androidxTest = "1.7.0"
 androidxTestExt = "1.3.0"
 androidxTestRunner = "1.7.0"
@@ -22,6 +22,7 @@ datastore = "1.1.7"
 kotlinxSerializationJson = "1.8.1"
 media3 = "1.7.1"
 mockk = "1.14.5"
+nanohttpd = "2.3.1"
 turbine = "1.2.1"
 ksp = "2.3.9"
 
@@ -77,6 +78,9 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+
+# NanoHTTPD
+nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
 
 # Testing
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }

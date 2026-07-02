@@ -10,9 +10,11 @@ data class DetailContentResult(
 
 @Serializable
 data class VodDetailResult(
+    @Serializable(with = FlexibleStringSerializer::class)
     @SerialName("vod_id") val vodId: String = "",
     @SerialName("vod_name") val vodName: String = "",
     @SerialName("vod_pic") val vodPic: String = "",
+    @Serializable(with = FlexibleStringSerializer::class)
     @SerialName("type_id") val typeId: String = "",
     @SerialName("type_name") val typeName: String = "",
     @SerialName("vod_year") val vodYear: String = "",

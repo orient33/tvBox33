@@ -1,19 +1,20 @@
 package com.github.catvod.crawler;
 
 import android.content.Context;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 
 public abstract class Spider {
     public void init(Context context, String extend) {}
-    public abstract String homeContent(boolean filter);
+    public String homeContent(boolean filter) { return ""; }
     public String homeVideoContent() { return ""; }
-    public abstract String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend);
-    public abstract String detailContent(List<String> ids);
-    public abstract String searchContent(String key, boolean quick, String pg);
-    public abstract String playerContent(String flag, String id, List<String> vipFlags);
-    public String proxyLocal(HashMap<String, String> params) { return ""; }
-    public String proxy(HashMap<String, String> params) { return ""; }
+    public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) { return ""; }
+    public String detailContent(List<String> ids) { return ""; }
+    public String searchContent(String key, boolean quick, String pg) { return ""; }
+    public String playerContent(String flag, String id, List<String> vipFlags) { return ""; }
+    public Object[] proxyLocal(HashMap<String, String> params) throws Exception { return new Object[]{}; }
+    public Object[] proxy(HashMap<String, String> params) throws Exception { return proxyLocal(params); }
     public void cancelByTag(String tag) {}
     public void destroy() {}
 }

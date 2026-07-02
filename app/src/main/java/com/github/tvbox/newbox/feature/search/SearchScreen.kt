@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,11 +40,18 @@ fun SearchScreen(
     onVodClick: (VodItem) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
+    initialQuery: String = "",
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var query by rememberSaveable { mutableStateOf("") }
-    var active by rememberSaveable { mutableStateOf(true) }
+    var query by rememberSaveable { mutableStateOf(initialQuery) }
+    var active by rememberSaveable { mutableStateOf(initialQuery.isEmpty()) }
+
+    if (initialQuery.isNotBlank()) {
+        LaunchedEffect(initialQuery) {
+            viewModel.search(initialQuery)
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         SearchBar(

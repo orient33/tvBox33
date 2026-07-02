@@ -1,6 +1,7 @@
 package com.github.tvbox.newbox.data.repository
 
 import android.util.Log
+import com.github.tvbox.newbox.common.ConfigDecoder
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.store.SettingsStore
 import com.github.tvbox.newbox.domain.SourceConfig
@@ -11,14 +12,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -44,6 +49,7 @@ class DefaultSubscriptionRepository @Inject constructor(
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+        allowTrailingComma = true
     }
 
     private val _sources = MutableStateFlow<List<SourceConfig>>(emptyList())
@@ -54,18 +60,37 @@ class DefaultSubscriptionRepository @Inject constructor(
     private val _sourceCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     override val sourceCounts: StateFlow<Map<String, Int>> = _sourceCounts.asStateFlow()
 
+    override val currentSubscriptionUrl: StateFlow<String?> = combine(
+        _sources,
+        settingsStore.currentSourceKey,
+    ) { sources, key ->
+        val source = if (key != null) sources.find { it.key == key } else sources.firstOrNull()
+        source?.let { s -> _sourcesByUrl.entries.find { it.value.any { it.key == s.key } }?.key }
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
     init {
         scope.launch {
             val saved = settingsStore.subscriptionUrls.first().filter { it.isNotBlank() }
+            val warehousesMap = settingsStore.subscriptionWarehouses.first()
+            val currentWarehouseMap = settingsStore.currentWarehouse.first()
             if (saved.isEmpty()) {
                 Log.d(TAG, "init: no saved subscriptions, loading default: $DEFAULT_SUBSCRIPTION_URL")
-                try { loadSubscription(DEFAULT_SUBSCRIPTION_URL) } catch (e: Exception) {
-                    Log.e(TAG, "init: failed to load default subscription: ${e.message}")
-                }
+//                try { loadSubscription(DEFAULT_SUBSCRIPTION_URL) } catch (e: Exception) {
+//                    Log.e(TAG, "init: failed to load default subscription: ${e.message}")
+//                }
             } else {
                 saved.forEach { url ->
                     Log.d(TAG, "init: reloading saved subscription: $url")
-                    try { loadSubscription(url) } catch (e: Exception) {
+                    try {
+                        val warehouses = warehousesMap[url]
+                        if (warehouses != null && warehouses.isNotEmpty()) {
+                            val idx = currentWarehouseMap[url] ?: 0
+                            val safeIdx = idx.coerceIn(0, warehouses.size - 1)
+                            loadWarehouse(url, warehouses[safeIdx].url)
+                        } else {
+                            loadSubscription(url)
+                        }
+                    } catch (e: Exception) {
                         Log.e(TAG, "init: failed to reload $url: ${e.message}")
                     }
                 }
@@ -86,10 +111,22 @@ class DefaultSubscriptionRepository @Inject constructor(
             return
         }
         Log.d(TAG, "loadSubscription: url=$url")
+
+        val parsed = ConfigDecoder.parseSubscriptionUrl(url)
         settingsStore.addSubscriptionUrl(url)
-        val body = fetchUrl(url)
+
+        val body = fetchUrl(parsed.configUrl)
         Log.d(TAG, "loadSubscription: fetched ${body.length} chars")
-        val root = json.parseToJsonElement(body).jsonObject
+
+        val decoded = ConfigDecoder.decode(body, parsed.configKey)
+        val fixed = ConfigDecoder.fixPaths(parsed.configUrl, decoded)
+
+        val root = try {
+            json.parseToJsonElement(fixed).jsonObject
+        } catch (e: Exception) {
+            Log.e(TAG, "loadSubscription: invalid JSON from $url: ${e.message}")
+            return
+        }
         val spiderEl = root["spider"]
         val globalSpider = if (spiderEl is JsonPrimitive && spiderEl != JsonNull) spiderEl.content else ""
         Log.d(TAG, "loadSubscription: globalSpider=$globalSpider")
@@ -98,7 +135,8 @@ class DefaultSubscriptionRepository @Inject constructor(
         Log.d(TAG, "loadSubscription: parsed ${sites.size} sites")
         val configs = sites
             .filter { it.api.isNotBlank() }
-            .map { it.toSourceConfig(globalSpider = globalSpider, baseUrl = url) }
+            .map { it.toSourceConfig(globalSpider = globalSpider, baseUrl = parsed.configUrl) }
+            .deduplicateByLast { it.key }
         Log.d(TAG, "loadSubscription: ${configs.size} valid configs, first=${configs.firstOrNull()?.name}")
         spiderFactory.clearCache()
         _sourcesByUrl[url] = configs
@@ -111,6 +149,53 @@ class DefaultSubscriptionRepository @Inject constructor(
             settingsStore.setCurrentSource(first.key)
             Log.d(TAG, "loadSubscription: auto-selected source: ${first.key} (${first.type})")
         }
+    }
+
+    override suspend fun probeSubscription(url: String): ProbeResult {
+        val parsed = ConfigDecoder.parseSubscriptionUrl(url)
+        val body = fetchUrl(parsed.configUrl)
+        val decoded = ConfigDecoder.decode(body, parsed.configKey)
+        val fixed = ConfigDecoder.fixPaths(parsed.configUrl, decoded)
+        val root = try {
+            json.parseToJsonElement(fixed).jsonObject
+        } catch (e: Exception) {
+            Log.e(TAG, "probeSubscription: invalid JSON from $url: ${e.message}")
+            throw Exception("无效的订阅内容: ${e.message}")
+        }
+
+        val urlsEl = root["urls"]
+        if (urlsEl is JsonArray && urlsEl.size > 0) {
+            val first = urlsEl[0]
+            if (first is JsonObject && first.contains("url") && first.contains("name")) {
+                val routes = urlsEl.mapNotNull { el ->
+                    if (el is JsonObject) {
+                        val name = (el["name"] as? JsonPrimitive)?.content?.trim()
+                            ?.replace(Regex("<|>|《|》|-"), "") ?: return@mapNotNull null
+                        val routeUrl = (el["url"] as? JsonPrimitive)?.content?.trim() ?: return@mapNotNull null
+                        RouteEntry(name, routeUrl)
+                    } else null
+                }
+                if (routes.isNotEmpty()) return ProbeResult.MultiRoute(routes)
+            }
+        }
+
+        val storeHouseEl = root["storeHouse"]
+        if (storeHouseEl is JsonArray && storeHouseEl.size > 0) {
+            val first = storeHouseEl[0]
+            if (first is JsonObject && first.contains("sourceName") && first.contains("sourceUrl")) {
+                val warehouses = storeHouseEl.mapNotNull { el ->
+                    if (el is JsonObject) {
+                        val name = (el["sourceName"] as? JsonPrimitive)?.content?.trim()
+                            ?.replace(Regex("<|>|《|》|-"), "") ?: return@mapNotNull null
+                        val whUrl = (el["sourceUrl"] as? JsonPrimitive)?.content?.trim() ?: return@mapNotNull null
+                        WarehouseEntry(name, whUrl)
+                    } else null
+                }
+                if (warehouses.isNotEmpty()) return ProbeResult.MultiWarehouse(warehouses)
+            }
+        }
+
+        return ProbeResult.SingleConfig(url)
     }
 
     override suspend fun setCurrentSource(key: String) {
@@ -133,23 +218,74 @@ class DefaultSubscriptionRepository @Inject constructor(
         }
     }
 
+    override suspend fun selectSubscription(url: String) {
+        val configs = _sourcesByUrl[url] ?: return
+        val best = configs.firstOrNull { it.type == SourceType.HTTP_API } ?: configs.firstOrNull() ?: return
+        settingsStore.setCurrentSource(best.key)
+    }
+
+    override suspend fun loadWarehouse(parentUrl: String, warehouseUrl: String) {
+        if (warehouseUrl.isBlank()) return
+        Log.d(TAG, "loadWarehouse: parentUrl=$parentUrl warehouseUrl=$warehouseUrl")
+
+        val parsed = ConfigDecoder.parseSubscriptionUrl(warehouseUrl)
+        Log.d(TAG, "loadWarehouse: parsed configUrl=${parsed.configUrl} configKey=${parsed.configKey}")
+
+        val body = fetchUrl(parsed.configUrl)
+        Log.d(TAG, "loadWarehouse: body length=${body.length}, preview=${body.take(200)}")
+
+        val decoded = ConfigDecoder.decode(body, parsed.configKey)
+        Log.d(TAG, "loadWarehouse: decoded length=${decoded.length}, preview=${decoded.take(200)}")
+
+        val fixed = ConfigDecoder.fixPaths(parsed.configUrl, decoded)
+        Log.d(TAG, "loadWarehouse: fixed length=${fixed.length}, preview=${fixed.take(200)}")
+
+        val root = try {
+            json.parseToJsonElement(fixed).jsonObject
+        } catch (e: Exception) {
+            Log.e(TAG, "loadWarehouse: invalid JSON from $warehouseUrl: ${e.message}")
+            Log.e(TAG, "loadWarehouse: fixed content (first 500): ${fixed.take(500)}")
+            return
+        }
+
+        val spiderEl = root["spider"]
+        val globalSpider = if (spiderEl is JsonPrimitive && spiderEl != JsonNull) spiderEl.content else ""
+
+        val sites = root["sites"]?.jsonArray?.map { it.jsonObject.toSiteJson() } ?: emptyList()
+        val configs = sites
+            .filter { it.api.isNotBlank() }
+            .map { it.toSourceConfig(globalSpider = globalSpider, baseUrl = parsed.configUrl) }
+            .deduplicateByLast { it.key }
+        Log.d(TAG, "loadWarehouse: ${configs.size} configs under parent=$parentUrl")
+
+        spiderFactory.clearCache()
+        _sourcesByUrl[parentUrl] = configs
+        rebuildSources()
+
+        val currentKey = settingsStore.currentSourceKey.first()
+        if (configs.isNotEmpty() && currentKey == null) {
+            val first = configs.firstOrNull { it.type == SourceType.HTTP_API } ?: configs.first()
+            settingsStore.setCurrentSource(first.key)
+        }
+    }
+
     private fun rebuildSources() {
-        val seen = mutableSetOf<String>()
-        _sources.value = _sourcesByUrl.values.flatten().filter { seen.add(it.key) }
+        _sources.value = _sourcesByUrl.values.flatten().deduplicateByLast { it.key }
         _sourceCounts.value = _sourcesByUrl.mapValues { it.value.size }
+    }
+
+    private fun <T, K> List<T>.deduplicateByLast(keySelector: (T) -> K): List<T> {
+        val map = linkedMapOf<K, T>()
+        for (item in this) map[keySelector(item)] = item
+        return map.values.toList()
     }
 
     private suspend fun fetchUrl(url: String): String = withContext(ioDispatcher) {
         val trimmed = url.trim()
         if (trimmed.isBlank()) return@withContext ""
-        val fixedUrl = when {
-            trimmed.startsWith("http://") || trimmed.startsWith("https://") -> trimmed
-            trimmed.startsWith("//") -> "https:$trimmed"
-            else -> "http://$trimmed"
-        }
-        val request = Request.Builder().url(fixedUrl).build()
+        val request = Request.Builder().url(trimmed).build()
         val response = okHttpClient.newCall(request).execute()
-        Log.d(TAG, "fetchUrl: $fixedUrl → HTTP ${response.code}")
+        Log.d(TAG, "fetchUrl: $trimmed → HTTP ${response.code}")
         if (response.isSuccessful) {
             response.body?.string() ?: ""
         } else {

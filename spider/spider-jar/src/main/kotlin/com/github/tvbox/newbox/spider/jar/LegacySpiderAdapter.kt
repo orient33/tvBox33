@@ -15,22 +15,6 @@ class LegacySpiderAdapter(
     }
 
     override suspend fun homeContent(filter: Boolean): String {
-        try {
-            val appClass = Class.forName("com.github.tvbox.osc.base.App")
-            val getInstance = appClass.getDeclaredMethod("getInstance")
-            val app = getInstance.invoke(null)
-            Log.d(TAG, "homeContent: App.getInstance()=$app class=${app?.javaClass?.name}")
-        } catch (e: Exception) {
-            Log.e(TAG, "homeContent: App.getInstance() reflection failed", e)
-        }
-        try {
-            val initClass = Class.forName("com.github.catvod.spider.Init")
-            val contextMethod = initClass.getDeclaredMethod("context")
-            val ctx = contextMethod.invoke(null)
-            Log.d(TAG, "homeContent: Init.context()=$ctx class=${ctx?.javaClass?.name}")
-        } catch (e: Exception) {
-            Log.e(TAG, "homeContent: Init.context() reflection failed", e)
-        }
         return legacySpider.homeContent(filter)
     }
 
@@ -48,7 +32,12 @@ class LegacySpiderAdapter(
     }
 
     override suspend fun detailContent(ids: List<String>): String {
-        return legacySpider.detailContent(ids)
+        return try {
+            legacySpider.detailContent(ids)
+        } catch (e: Exception) {
+            Log.e(TAG, "detailContent: ${e.javaClass.simpleName}: ${e.message}")
+            ""
+        }
     }
 
     override suspend fun searchContent(key: String, quick: Boolean, pg: String): String {
@@ -63,12 +52,24 @@ class LegacySpiderAdapter(
         return legacySpider.playerContent(flag, id, vipFlags)
     }
 
-    override suspend fun proxyLocal(params: Map<String, String>): String {
-        return legacySpider.proxyLocal(HashMap(params))
+    override suspend fun proxyLocal(params: Map<String, String>): Array<Any?> {
+        return try {
+            val result = legacySpider.proxyLocal(HashMap(params))
+            if (result != null && result.isNotEmpty()) result else emptyArray()
+        } catch (e: Exception) {
+            Log.e(TAG, "proxyLocal: exception=${e.message}", e)
+            emptyArray()
+        }
     }
 
-    override suspend fun proxy(params: Map<String, String>): String {
-        return legacySpider.proxy(HashMap(params))
+    override suspend fun proxy(params: Map<String, String>): Array<Any?> {
+        return try {
+            val result = legacySpider.proxy(HashMap(params))
+            if (result != null && result.isNotEmpty()) result else emptyArray()
+        } catch (e: Exception) {
+            Log.e(TAG, "proxy: exception=${e.message}", e)
+            emptyArray()
+        }
     }
 
     override fun cancelByTag(tag: String) {

@@ -20,13 +20,32 @@ class GetHomeContentUseCase @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    data class Params(val sourceConfig: SourceConfig, val filter: Boolean = true)
+    data class Params(
+        val sourceConfig: SourceConfig,
+        val filter: Boolean = true,
+        val categoryId: String? = null,
+        val page: String = "1",
+        val extend: Map<String, String> = emptyMap(),
+    )
 
     override suspend operator fun invoke(params: Params): HomeContent = withContext(ioDispatcher) {
         val spider = loadSpider(params.sourceConfig)
         val resultJson = spider.homeContent(params.filter)
         val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.HomeContentResult>(resultJson)
-        parser.parseHomeContent(result, params.sourceConfig.key)
+        val homeContent = parser.parseHomeContent(result, params.sourceConfig.key)
+        val categoryId = params.categoryId
+        if (categoryId == null) {
+            homeContent
+        } else {
+            val categoryJson = spider.categoryContent(categoryId, params.page, params.filter, params.extend)
+            val categoryResult = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.CategoryContentResult>(categoryJson)
+            homeContent.copy(
+                videos = parser.parseCategoryContent(categoryResult, params.sourceConfig.key),
+                page = categoryResult.page.ifBlank { params.page },
+                pageCount = categoryResult.pagecount.ifBlank { params.page },
+                total = categoryResult.total,
+            )
+        }
     }
 
     private suspend fun loadSpider(config: SourceConfig) = spiderFactory

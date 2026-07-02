@@ -12,17 +12,21 @@ data class HomeContentResult(
 
 @Serializable
 data class ClassItem(
+    @Serializable(with = FlexibleStringSerializer::class)
     @SerialName("type_id") val typeId: String = "",
     @SerialName("type_name") val typeName: String = "",
+    @Serializable(with = FlexibleStringSerializer::class)
     @SerialName("type_pid") val typePid: String = "",
 )
 
 @Serializable
 data class VodItemResult(
+    @Serializable(with = FlexibleStringSerializer::class)
     @SerialName("vod_id") val vodId: String = "",
     @SerialName("vod_name") val vodName: String = "",
     @SerialName("vod_pic") val vodPic: String = "",
     @SerialName("vod_remarks") val vodRemarks: String = "",
+    @Serializable(with = FlexibleStringSerializer::class)
     @SerialName("type_id") val typeId: String = "",
     @SerialName("type_name") val typeName: String = "",
     @SerialName("vod_year") val vodYear: String = "",

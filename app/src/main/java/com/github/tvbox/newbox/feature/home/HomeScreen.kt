@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -33,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.tvbox.newbox.domain.FilterGroup
 import com.github.tvbox.newbox.domain.SourceConfig
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.ui.common.LoadingView
@@ -60,6 +66,9 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentSource by viewModel.currentSource.collectAsStateWithLifecycle()
     val sources by viewModel.sources.collectAsStateWithLifecycle()
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
+    val selectedFilters by viewModel.selectedFilters.collectAsStateWithLifecycle()
+    val isLoadingMore by viewModel.isLoadingMore.collectAsStateWithLifecycle()
     var showSourceDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -96,7 +105,7 @@ fun HomeScreen(
                 if (sources.isNotEmpty()) {
                     TextButton(onClick = { showSourceDialog = true }) {
                         Text(
-                            text = "${sources.size}源",
+                            text = "${sources.size}网站",
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
@@ -183,38 +192,16 @@ fun HomeScreen(
                     }
                 }
             }
-            is HomeUiState.Success -> {
-                if (state.homeContent.videos.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.VideoLibrary,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "当前源暂无内容",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = "请尝试切换其他源",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                } else {
-                    HomeContent(
-                        homeContent = state.homeContent,
-                        onVodClick = onVodClick,
-                    )
-                }
-            }
+            is HomeUiState.Success -> HomeContent(
+                homeContent = state.homeContent,
+                selectedCategoryId = selectedCategoryId,
+                selectedFilters = selectedFilters,
+                isLoadingMore = isLoadingMore,
+                onCategoryClick = viewModel::selectCategory,
+                onFilterClick = viewModel::selectFilter,
+                onLoadMore = viewModel::loadMore,
+                onVodClick = onVodClick,
+            )
         }
     }
 
@@ -245,14 +232,15 @@ private fun SourceSwitchDialog(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(sources) { source ->
+                items(sources.size) { index ->
+                    val source = sources[index]
                     val isSelected = source.key == currentKey
                     TextButton(
                         onClick = { onSelect(source.key) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            text = if (isSelected) "● ${source.name}" else source.name,
+                            text = if (isSelected) "● ${index + 1}. ${source.name}" else "${index + 1}. ${source.name}",
                             style = if (isSelected) MaterialTheme.typography.bodyLarge
                             else MaterialTheme.typography.bodyMedium,
                             color = if (isSelected) MaterialTheme.colorScheme.primary
@@ -276,33 +264,157 @@ private fun SourceSwitchDialog(
 @Composable
 private fun HomeContent(
     homeContent: com.github.tvbox.newbox.domain.HomeContent,
+    selectedCategoryId: String?,
+    selectedFilters: Map<String, String>,
+    isLoadingMore: Boolean,
+    onCategoryClick: (String?) -> Unit,
+    onFilterClick: (String, String) -> Unit,
+    onLoadMore: () -> Unit,
     onVodClick: (VodItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val gridState = rememberLazyGridState()
+    val hasMore = selectedCategoryId != null &&
+        (homeContent.page.toIntOrNull() ?: 1) < (homeContent.pageCount.toIntOrNull() ?: 1)
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val layoutInfo = gridState.layoutInfo
+            val totalItemsCount = layoutInfo.totalItemsCount
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: return@derivedStateOf false
+            totalItemsCount > 0 && lastVisibleIndex >= totalItemsCount - 6
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore, hasMore, isLoadingMore) {
+        if (shouldLoadMore && hasMore && !isLoadingMore) {
+            onLoadMore()
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         if (homeContent.categories.isNotEmpty()) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                item {
+                    FilterChip(
+                        selected = selectedCategoryId == null,
+                        onClick = { onCategoryClick(null) },
+                        label = { Text("主页") },
+                    )
+                }
                 items(homeContent.categories) { category ->
                     FilterChip(
-                        selected = false,
-                        onClick = { /* TODO: filter by category */ },
+                        selected = selectedCategoryId == category.id,
+                        onClick = { onCategoryClick(category.id) },
                         label = { Text(category.name) },
                     )
                 }
             }
         }
+        val categoryFilters = selectedCategoryId?.let { homeContent.filters[it] }.orEmpty()
+        if (categoryFilters.isNotEmpty()) {
+            CategoryFilters(
+                filters = categoryFilters,
+                selectedFilters = selectedFilters,
+                onFilterClick = onFilterClick,
+            )
+        }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(homeContent.videos) { vod ->
-                VodCard(item = vod, onClick = onVodClick)
+        if (homeContent.videos.isEmpty()) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.VideoLibrary,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "当前源暂无内容",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "请尝试切换其他源或分类",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                modifier = Modifier.weight(1f),
+                state = gridState,
+                columns = GridCells.Fixed(3),
+                contentPadding = PaddingValues(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(homeContent.videos) { vod ->
+                    VodCard(item = vod, onClick = onVodClick)
+                }
+                if (isLoadingMore) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryFilters(
+    filters: List<FilterGroup>,
+    selectedFilters: Map<String, String>,
+    onFilterClick: (String, String) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        filters.forEach { group ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = group.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(group.items) { item ->
+                        FilterChip(
+                            selected = selectedFilters[group.key] == item.value,
+                            onClick = { onFilterClick(group.key, item.value) },
+                            label = {
+                                Text(
+                                    text = item.name,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                        )
+                    }
+                }
             }
         }
     }

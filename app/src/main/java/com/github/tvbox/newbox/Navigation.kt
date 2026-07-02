@@ -16,6 +16,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable object HomeRoute
 @Serializable object SearchRoute
+@Serializable data class SearchRouteWithQuery(val query: String)
 @Serializable object SettingsRoute
 @Serializable data class DetailRoute(
     val id: String,
@@ -45,7 +46,11 @@ fun AppNavHost(
         composable<HomeRoute> {
             HomeScreen(
                 onVodClick = { vod ->
-                    navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
+                    if (vod.id.startsWith("msearch:")) {
+                        navController.navigate(SearchRouteWithQuery(vod.name))
+                    } else {
+                        navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
+                    }
                 },
                 onSearchClick = { navController.navigate(SearchRoute) },
                 onSettingsClick = { navController.navigate(SettingsRoute) },
@@ -53,6 +58,16 @@ fun AppNavHost(
         }
         composable<SearchRoute> {
             SearchScreen(
+                onVodClick = { vod ->
+                    navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
+                },
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+        composable<SearchRouteWithQuery> { backStackEntry ->
+            val route = backStackEntry.toRoute<SearchRouteWithQuery>()
+            SearchScreen(
+                initialQuery = route.query,
                 onVodClick = { vod ->
                     navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
                 },

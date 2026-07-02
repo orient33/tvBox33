@@ -22,6 +22,11 @@ import javax.inject.Singleton
 @Singleton
 class SpiderResultParser @Inject constructor() {
 
+    private fun String.stripUrlAnnotations(): String {
+        val idx = indexOfAny(charArrayOf('@'), 0)
+        return if (idx > 0) substring(0, idx) else this
+    }
+
     fun parseHomeContent(result: HomeContentResult, sourceKey: String = ""): HomeContent = HomeContent(
         categories = result.classes.map { Category(it.typeId.toString(), it.typeName) },
         videos = result.list.map { it.toVodItem(sourceKey) },
@@ -56,7 +61,7 @@ class SpiderResultParser @Inject constructor() {
     private fun VodItemResult.toVodItem(sourceKey: String) = VodItem(
         id = vodId.toString(),
         name = vodName,
-        pic = vodPic,
+        pic = vodPic.stripUrlAnnotations(),
         note = vodRemarks,
         type = typeName,
         year = vodYear,
@@ -84,7 +89,7 @@ class SpiderResultParser @Inject constructor() {
         return VodDetail(
             id = vodId.toString(),
             name = vodName,
-            pic = vodPic,
+            pic = vodPic.stripUrlAnnotations(),
             type = typeName,
             year = vodYear,
             area = vodArea,

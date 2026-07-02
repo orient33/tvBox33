@@ -4,8 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CategoryContentResult(
+    @Serializable(with = FlexibleStringSerializer::class)
     val page: String = "",
+    @Serializable(with = FlexibleStringSerializer::class)
     val pagecount: String = "",
+    @Serializable(with = FlexibleStringSerializer::class)
     val total: String = "",
     val list: List<VodItemResult> = emptyList(),
 )
