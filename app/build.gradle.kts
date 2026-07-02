@@ -63,6 +63,7 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.compose.material3)
+  implementation("androidx.compose.material:material-icons-extended")
   // Tooling
   debugImplementation(libs.androidx.compose.ui.tooling)
   // Instrumented tests
@@ -79,10 +80,8 @@ dependencies {
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
 
-  // Navigation 3
-  implementation(libs.androidx.navigation3.ui)
-  implementation(libs.androidx.navigation3.runtime)
-  implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+  // Navigation Compose
+  implementation("androidx.navigation:navigation-compose:2.9.1")
 
   // Hilt
   implementation(libs.hilt.android)
@@ -113,6 +112,10 @@ dependencies {
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.ui)
   implementation(libs.media3.session)
+
+  // Spider API
+  implementation(project(":spider:spider-api"))
+  implementation(project(":spider:spider-jar"))
 
   // Testing
   testImplementation(libs.mockk)

@@ -31,3 +31,5 @@ plugins {
 
 rootProject.name = "NewBox"
 include(":app")
+include(":spider:spider-api")
+include(":spider:spider-jar")
