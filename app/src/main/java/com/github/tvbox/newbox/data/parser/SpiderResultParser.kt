@@ -9,6 +9,7 @@ import com.github.tvbox.newbox.domain.PlayerResult
 import com.github.tvbox.newbox.domain.SubtitleTrack
 import com.github.tvbox.newbox.domain.VodDetail
 import com.github.tvbox.newbox.domain.VodItem
+import com.github.tvbox.newbox.server.SpiderProxyServer
 import com.github.tvbox.newbox.spider.api.result.CategoryContentResult
 import com.github.tvbox.newbox.spider.api.result.DetailContentResult
 import com.github.tvbox.newbox.spider.api.result.HomeContentResult
@@ -52,11 +53,28 @@ class SpiderResultParser @Inject constructor() {
     fun parseSearchContent(result: SearchContentResult, sourceKey: String = ""): List<VodItem> =
         result.list.map { it.toVodItem(sourceKey) }
 
-    fun parsePlayerContent(result: PlayerContentResult): PlayerResult = PlayerResult(
-        url = result.url.ifBlank { result.playUrl },
-        headers = result.header,
-        subtitles = emptyList(),
-    )
+    fun parsePlayerContent(result: PlayerContentResult): PlayerResult {
+        val headers = result.header.toMutableMap()
+        if (result.UA.isNotBlank() && headers.keys.none { it.equals("User-Agent", ignoreCase = true) }) {
+            headers["User-Agent"] = result.UA
+        }
+        if (result.referer.isNotBlank() && headers.keys.none { it.equals("Referer", ignoreCase = true) }) {
+            headers["Referer"] = result.referer
+        }
+        val rawUrl = result.url.ifBlank { result.playUrl }
+        val url = rewriteProxyUrl(rawUrl)
+        return PlayerResult(
+            url = url,
+            headers = headers,
+            subtitles = emptyList(),
+        )
+    }
+
+    private fun rewriteProxyUrl(url: String): String {
+        if (url.isBlank()) return url
+        val port = SpiderProxyServer.activePort
+        return url.replace("127.0.0.1:-1", "127.0.0.1:$port")
+    }
 
     private fun VodItemResult.toVodItem(sourceKey: String) = VodItem(
         id = vodId.toString(),

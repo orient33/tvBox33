@@ -1,5 +1,6 @@
 package com.github.tvbox.newbox.domain.usecase
 
+import android.util.Log
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -8,8 +9,10 @@ import com.github.tvbox.newbox.domain.PlayerResult
 import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -19,6 +22,11 @@ class GetPlayerUrlUseCase @Inject constructor(
     private val parser: SpiderResultParser,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : BaseUseCase<GetPlayerUrlUseCase.Params, PlayerResult> {
+
+    companion object {
+        private const val TAG = "NewBox-Player"
+        private const val PLAYER_TIMEOUT_MS = 30_000L
+    }
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -42,7 +50,18 @@ class GetPlayerUrlUseCase @Inject constructor(
                 spider = source.spider,
                 playerUrl = source.playerUrl, playerType = source.playerType,
             ))
-        val resultJson = spider.playerContent(params.flag, params.playUrl, params.vipFlags)
+        Log.d(TAG, "playerContent START source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}")
+        val resultJson = try {
+            withTimeout(PLAYER_TIMEOUT_MS) {
+                spider.playerContent(params.flag, params.playUrl, params.vipFlags)
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "playerContent timed out after ${PLAYER_TIMEOUT_MS}ms source=${source.key}/${source.name}, flag=${params.flag}")
+            throw IllegalStateException("解析播放地址超时，该源可能不可用")
+        } catch (e: Exception) {
+            Log.e(TAG, "playerContent failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}", e)
+            throw e
+        }
         val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.PlayerContentResult>(resultJson)
         parser.parsePlayerContent(result)
     }

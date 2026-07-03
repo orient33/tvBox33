@@ -26,6 +26,7 @@ class JarSpiderLoader(
 
     private val classLoaders = ConcurrentHashMap<String, DexClassLoader>()
     private val spiders = ConcurrentHashMap<String, Spider>()
+    private val proxyMethods = ConcurrentHashMap<String, java.lang.reflect.Method>()
     private val initLock = Any()
 
     private val app: Application by lazy {
@@ -40,10 +41,23 @@ class JarSpiderLoader(
     fun clearCache() {
         spiders.clear()
         classLoaders.clear()
+        proxyMethods.clear()
     }
 
     override fun isSupported(type: SourceType): Boolean =
         type == SourceType.JAR || type == SourceType.SPIDER
+
+    override fun proxyInvoke(params: Map<String, String>): Array<Any?>? {
+        for ((_, method) in proxyMethods) {
+            try {
+                val result = method.invoke(null, params) as? Array<Any?>
+                if (result != null && result.isNotEmpty()) return result
+            } catch (e: Throwable) {
+                Log.w(TAG, "proxyInvoke: ${e.javaClass.simpleName}: ${e.message}")
+            }
+        }
+        return null
+    }
 
     override suspend fun load(config: SpiderSourceConfig): Spider {
         com.github.catvod.Init.set(app)
@@ -117,7 +131,7 @@ class JarSpiderLoader(
                 return null
             }
             Log.d(TAG, "getOrCreateClassLoader: jar downloaded to ${jarFile.absolutePath} size=${jarFile.length()}")
-            return createDexClassLoader(jarFile)?.also { classLoaders["main"] = it }
+            return createDexClassLoader(jarFile, "main")?.also { classLoaders["main"] = it }
         }
 
         val jarFile = downloadJar(jarKey.url, jarKey.md5, jarKey.isImgJar)
@@ -125,10 +139,10 @@ class JarSpiderLoader(
             Log.e(TAG, "getOrCreateClassLoader: downloadJar returned null for ${jarKey.url}")
             return null
         }
-        return createDexClassLoader(jarFile)?.also { classLoaders[jarKey.key] = it }
+        return createDexClassLoader(jarFile, jarKey.key)?.also { classLoaders[jarKey.key] = it }
     }
 
-    private fun createDexClassLoader(jarFile: File): DexClassLoader? {
+    private fun createDexClassLoader(jarFile: File, jarKey: String = "main"): DexClassLoader? {
         if (!jarFile.exists()) return null
         val cacheDir = File(app.cacheDir, "catvod_csp").also { it.mkdirs() }
         synchronized(initLock) {
@@ -145,6 +159,7 @@ class JarSpiderLoader(
             }
             if (classLoader != null) {
                 initJarSpider(classLoader)
+                loadProxyClass(classLoader, jarKey)
             }
             return classLoader
         }
@@ -245,6 +260,19 @@ class JarSpiderLoader(
                     }
                 }
             }
+        }
+    }
+
+    private fun loadProxyClass(classLoader: DexClassLoader, jarKey: String) {
+        try {
+            val proxyClass = classLoader.loadClass("com.github.catvod.spider.Proxy")
+            val proxyMethod = proxyClass.getMethod("proxy", Map::class.java)
+            proxyMethods[jarKey] = proxyMethod
+            Log.d(TAG, "loadProxyClass: Proxy.proxy loaded for jarKey=$jarKey")
+        } catch (e: ClassNotFoundException) {
+            Log.d(TAG, "loadProxyClass: no Proxy class in jarKey=$jarKey (OK)")
+        } catch (e: Throwable) {
+            Log.w(TAG, "loadProxyClass: failed for jarKey=$jarKey: ${e.message}")
         }
     }
 

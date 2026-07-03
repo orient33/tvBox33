@@ -47,7 +47,7 @@ class DetailPlayerViewModel @Inject constructor(
                 _detailState.value = DetailUiState.Success(detail)
                 _selectedFlagIndex.value = 0
             } catch (e: Exception) {
-                Log.e(TAG, "Detail load failed sourceKey=$sourceKey, vodId=$vodId", e)
+                Log.e(TAG, "loadDetail FAIL sourceKey=$sourceKey, vodId=$vodId, ${e.javaClass.simpleName}: ${e.message}", e)
                 _detailState.value = DetailUiState.Error(e.message ?: "Failed to load detail")
             }
         }

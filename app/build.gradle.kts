@@ -112,8 +112,9 @@ dependencies {
   implementation("com.google.code.gson:gson:2.11.0")
 
   // Media3
-  implementation(libs.media3.exoplayer)
-  implementation(libs.media3.ui)
+implementation(libs.media3.exoplayer)
+implementation(libs.media3.exoplayer.hls)
+implementation(libs.media3.ui)
   implementation(libs.media3.session)
 
   // Spider API

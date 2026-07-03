@@ -9,8 +9,10 @@ import com.github.tvbox.newbox.domain.VodDetail
 import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -21,7 +23,10 @@ class GetDetailUseCase @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : BaseUseCase<GetDetailUseCase.Params, VodDetail> {
 
-    companion object { private const val TAG = "NewBox-Detail" }
+    companion object { 
+        private const val TAG = "NewBox-Detail"
+        private const val DETAIL_TIMEOUT_MS = 15_000L
+    }
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -44,7 +49,12 @@ class GetDetailUseCase @Inject constructor(
                 playerUrl = source.playerUrl, playerType = source.playerType,
             ))
         val resultJson = try {
-            spider.detailContent(listOf(params.vodId))
+            withTimeout(DETAIL_TIMEOUT_MS) {
+                spider.detailContent(listOf(params.vodId))
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "detailContent timed out after ${DETAIL_TIMEOUT_MS}ms source=${source.key}/${source.name}, vodId=${params.vodId}")
+            throw IllegalStateException("详情加载超时，该源可能不可用")
         } catch (e: Exception) {
             Log.e(TAG, "detailContent failed source=${source.key}/${source.name}, vodId=${params.vodId}", e)
             throw e

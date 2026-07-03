@@ -61,7 +61,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -103,11 +105,21 @@ fun DetailPlayerScreen(
         onDispose { exoPlayer.release() }
     }
 
+    LaunchedEffect(vodItem) {
+        if (vodItem != null && vodItem.id.isNotBlank() && !vodItem.id.startsWith("msearch:")) {
+            viewModel.loadDetail(vodItem.id, vodItem.sourceKey)
+        }
+    }
+
     LaunchedEffect(playerState) {
         if (playerState is PlayerUiState.Ready) {
             val result = (playerState as PlayerUiState.Ready).playerResult
             dataSourceFactory.setDefaultRequestProperties(result.headers)
-            exoPlayer.setMediaItem(MediaItem.fromUri(result.url))
+            val mediaItem = MediaItem.Builder()
+                .setUri(result.url)
+                .setMimeType(guessMimeType(result.url))
+                .build()
+            exoPlayer.setMediaItem(mediaItem)
             exoPlayer.playWhenReady = true
             exoPlayer.prepare()
         }
@@ -515,4 +527,16 @@ private fun AllEpisodesSheetContent(
         }
     }
     Spacer(modifier = Modifier.height(32.dp))
+}
+
+private fun guessMimeType(url: String): String? {
+    val lower = url.lowercase()
+    return when {
+        lower.contains("m3u8") -> MimeTypes.APPLICATION_M3U8
+        lower.contains(".mpd") -> MimeTypes.APPLICATION_MPD
+        lower.contains(".mp4") || lower.contains(".mkv") -> MimeTypes.APPLICATION_MP4
+        lower.contains(".flv") -> MimeTypes.VIDEO_FLV
+        lower.contains(".ts") -> MimeTypes.VIDEO_MP2T
+        else -> null
+    }
 }

@@ -33,10 +33,15 @@ class LegacySpiderAdapter(
 
     override suspend fun detailContent(ids: List<String>): String {
         return try {
-            legacySpider.detailContent(ids)
+            val result = legacySpider.detailContent(ids)
+            if (result.isBlank()) {
+                Log.w(TAG, "detailContent returned blank for ids=$ids")
+                throw IllegalStateException("详情数据为空，该源可能不可用")
+            }
+            result
         } catch (e: Exception) {
             Log.e(TAG, "detailContent: ${e.javaClass.simpleName}: ${e.message}")
-            ""
+            throw e
         }
     }
 

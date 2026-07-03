@@ -20,11 +20,17 @@ class SpiderProxyServer(
     companion object {
         private const val TAG = "NewBox-Proxy"
         const val DEFAULT_PORT = 8964
+
+        @Volatile
+        @JvmStatic
+        var activePort: Int = DEFAULT_PORT
+            private set
     }
 
     fun startServer() {
         start(SOCKET_READ_TIMEOUT, false)
-        Log.d(TAG, "SpiderProxyServer started on port $listeningPort")
+        SpiderProxyServer.activePort = getListeningPort()
+        Log.d(TAG, "SpiderProxyServer started on port ${SpiderProxyServer.activePort}")
     }
 
     override fun serve(session: IHTTPSession): Response {
@@ -32,8 +38,6 @@ class SpiderProxyServer(
         val params = session.parms.toMutableMap()
         params.putAll(session.headers)
         params["request-headers"] = session.headers.entries.joinToString(",") { "${it.key}:${it.value}" }
-
-        Log.d(TAG, "REQUEST: ${session.method} $uri do=${params["do"]} source=${params["source"]}")
 
         return when {
             uri == "/proxy" -> handleProxy(params)
@@ -55,43 +59,29 @@ class SpiderProxyServer(
             return newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, "ok")
         }
 
-        val sourceKey = params["source"]
         return runBlocking {
-            if (sourceKey != null) {
-                tryProxyWithSource(params, sourceKey)
-            } else {
-                tryProxyAllSources(params)
-            }
+            tryProxyViaFactory(params)
         }
     }
 
-    private suspend fun tryProxyWithSource(params: Map<String, String>, sourceKey: String): Response {
-        val source = subscriptionRepository.sources.first()
-            .find { it.key == sourceKey }
-            ?: return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Source not found: $sourceKey")
-
-        return try {
-            val spider = source.toSpider()
-            val result = spider.proxyLocal(params)
-            buildProxyResponse(result)
-        } catch (e: Exception) {
-            Log.e(TAG, "proxy error for source=$sourceKey: ${e.message}", e)
-            newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.message ?: "Proxy error")
-        }
-    }
-
-    private suspend fun tryProxyAllSources(params: Map<String, String>): Response {
-        val sources = subscriptionRepository.sources.first()
-        for (source in sources) {
+    private suspend fun tryProxyViaFactory(params: Map<String, String>): Response {
+        for (sourceType in listOf(
+            com.github.tvbox.newbox.spider.api.SourceType.JAR,
+            com.github.tvbox.newbox.spider.api.SourceType.SPIDER,
+            com.github.tvbox.newbox.spider.api.SourceType.JS,
+        )) {
             try {
-                val spider = source.toSpider()
-                val result = spider.proxyLocal(params)
-                if (result.isNotEmpty()) {
+                val loader = spiderFactory.createLoader(sourceType)
+                val result = loader.proxyInvoke(params)
+                if (result != null && result.isNotEmpty()) {
                     return buildProxyResponse(result)
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.w(TAG, "tryProxyViaFactory: $sourceType failed: ${e.message}")
+            }
         }
-        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "No source handled proxy")
+        Log.e(TAG, "tryProxyViaFactory: no loader handled proxy")
+        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "No loader handled proxy")
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -116,14 +106,6 @@ class SpiderProxyServer(
 
         return response
     }
-
-    private suspend fun SourceConfig.toSpider() = spiderFactory
-        .createLoader(type.toSpiderType())
-        .load(SpiderSourceConfig(
-            key = key, name = name, api = api,
-            type = type.code, ext = ext ?: "", jar = jar ?: "",
-            spider = spider, playerUrl = playerUrl, playerType = playerType,
-        ))
 
     private fun handleDnsQuery(params: Map<String, String>): Response {
         return newFixedLengthResponse(Response.Status.OK, "application/dns-message", ByteArrayInputStream(ByteArray(0)), 0)
