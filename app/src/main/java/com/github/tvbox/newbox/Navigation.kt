@@ -38,6 +38,14 @@ fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    fun openVod(vod: VodItem) {
+        if (vod.id.isBlank() || vod.id.startsWith("msearch:")) {
+            navController.navigate(SearchRouteWithQuery(vod.name))
+        } else {
+            navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = HomeRoute,
@@ -45,22 +53,14 @@ fun AppNavHost(
     ) {
         composable<HomeRoute> {
             HomeScreen(
-                onVodClick = { vod ->
-                    if (vod.id.startsWith("msearch:")) {
-                        navController.navigate(SearchRouteWithQuery(vod.name))
-                    } else {
-                        navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
-                    }
-                },
+                onVodClick = ::openVod,
                 onSearchClick = { navController.navigate(SearchRoute) },
                 onSettingsClick = { navController.navigate(SettingsRoute) },
             )
         }
         composable<SearchRoute> {
             SearchScreen(
-                onVodClick = { vod ->
-                    navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
-                },
+                onVodClick = ::openVod,
                 onBackClick = { navController.popBackStack() },
             )
         }
@@ -68,9 +68,7 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<SearchRouteWithQuery>()
             SearchScreen(
                 initialQuery = route.query,
-                onVodClick = { vod ->
-                    navController.navigate(DetailRoute(vod.id, vod.name, vod.pic, vod.note, vod.type, vod.sourceKey))
-                },
+                onVodClick = ::openVod,
                 onBackClick = { navController.popBackStack() },
             )
         }
