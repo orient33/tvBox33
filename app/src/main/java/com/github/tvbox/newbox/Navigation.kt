@@ -7,9 +7,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.github.tvbox.newbox.domain.VodItem
-import com.github.tvbox.newbox.feature.detail.DetailScreen
+import com.github.tvbox.newbox.feature.detailplayer.DetailPlayerScreen
 import com.github.tvbox.newbox.feature.home.HomeScreen
-import com.github.tvbox.newbox.feature.player.PlayerScreen
 import com.github.tvbox.newbox.feature.search.SearchScreen
 import com.github.tvbox.newbox.feature.settings.SettingsScreen
 import kotlinx.serialization.Serializable
@@ -25,12 +24,6 @@ import kotlinx.serialization.Serializable
     val note: String = "",
     val type: String = "",
     val sourceKey: String = "",
-)
-@Serializable data class PlayerRoute(
-    val flag: String,
-    val playUrl: String,
-    val sourceKey: String,
-    val title: String = "",
 )
 
 @Composable
@@ -82,21 +75,8 @@ fun AppNavHost(
                 type = route.type,
                 sourceKey = route.sourceKey,
             )
-            DetailScreen(
+            DetailPlayerScreen(
                 vodItem = vodItem,
-                onBackClick = { navController.popBackStack() },
-                onPlayClick = { flag, url, sourceKey ->
-                    navController.navigate(PlayerRoute(flag, url, sourceKey, route.name))
-                },
-            )
-        }
-        composable<PlayerRoute> { backStackEntry ->
-            val route = backStackEntry.toRoute<PlayerRoute>()
-            PlayerScreen(
-                flag = route.flag,
-                playUrl = route.playUrl,
-                sourceKey = route.sourceKey,
-                title = route.title,
                 onBackClick = { navController.popBackStack() },
             )
         }
