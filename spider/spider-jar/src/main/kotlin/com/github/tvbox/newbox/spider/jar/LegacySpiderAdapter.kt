@@ -41,7 +41,15 @@ class LegacySpiderAdapter(
     }
 
     override suspend fun searchContent(key: String, quick: Boolean, pg: String): String {
-        return legacySpider.searchContent(key, quick, pg)
+        return try {
+            if (pg == "1") {
+                legacySpider.searchContent(key, quick)
+            } else {
+                legacySpider.searchContent(key, quick, pg)
+            }
+        } catch (e: NoSuchMethodError) {
+            legacySpider.searchContent(key, quick)
+        }
     }
 
     override suspend fun playerContent(
