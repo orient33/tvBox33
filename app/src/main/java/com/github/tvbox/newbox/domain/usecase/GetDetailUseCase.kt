@@ -1,5 +1,6 @@
 package com.github.tvbox.newbox.domain.usecase
 
+import android.util.Log
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -19,6 +20,8 @@ class GetDetailUseCase @Inject constructor(
     private val parser: SpiderResultParser,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : BaseUseCase<GetDetailUseCase.Params, VodDetail> {
+
+    companion object { private const val TAG = "NewBox-Detail" }
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -40,11 +43,27 @@ class GetDetailUseCase @Inject constructor(
                 spider = source.spider,
                 playerUrl = source.playerUrl, playerType = source.playerType,
             ))
-        val resultJson = spider.detailContent(listOf(params.vodId))
-        val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.DetailContentResult>(resultJson)
-        parser.parseDetailContent(result, params.sourceKey)
-            ?: throw IllegalStateException("Detail not found for: ${params.vodId}")
+        val resultJson = try {
+            spider.detailContent(listOf(params.vodId))
+        } catch (e: Exception) {
+            Log.e(TAG, "detailContent failed source=${source.key}/${source.name}, vodId=${params.vodId}", e)
+            throw e
+        }
+        try {
+            val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.DetailContentResult>(resultJson)
+            parser.parseDetailContent(result, params.sourceKey)
+                ?: throw IllegalStateException("Detail not found for: ${params.vodId}")
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Detail decode/parse failed source=${source.key}/${source.name}, vodId=${params.vodId}, jsonLength=${resultJson.length}, json=${resultJson.logSnippet()}",
+                e,
+            )
+            throw e
+        }
     }
 
     private suspend fun <T> first(flow: kotlinx.coroutines.flow.Flow<T>): T = flow.first()
+
+    private fun String.logSnippet(): String = take(2000).replace('\n', ' ').replace('\r', ' ')
 }

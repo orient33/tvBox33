@@ -5,7 +5,7 @@
 > **Quick Summary**: 将 TVBoxOS-Mobile (MBox) 重写为现代 Android 应用，采用 Google 推荐三层架构 (UI/Domain/Data)，全 Kotlin + Coroutines + Flow，Compose UI，兼容现有 Spider 插件生态。
 >
 > **Deliverables**:
-> - 完整的新项目脚手架（4 模块: app + spider:spider-api + spider:spider-jar + build-logic，app 内按包名分 ui/data/domain/common/feature）
+> - 完整的新项目脚手架（3 模块: app + spider:spider-api + spider:spider-jar，app 内按包名分 ui/data/domain/common/feature）
 > - Spider 插件系统（api + jar loader + LegacySpiderAdapter 桥接）
 > - 视频列表浏览 + 搜索 + 视频详情 + 播放 全链路
 >
@@ -54,6 +54,12 @@
 - spider-jar 最小可用版纳入 Phase 1
 - kotlinx.serialization 内部使用，Spider 接口层保留 Gson 桥接
 
+### Plan Adjustments (2026-07-02)
+
+- `build-logic` 暂不作为必需交付物：当前 `newBox` 规模下直接使用 Gradle Kotlin DSL + Version Catalog 足够，避免为了结构一致性引入额外维护成本。
+- 测试体系暂缓：当前阶段以功能调试和 `compileDebugKotlin`/`assembleDebug` 构建验证为主，自动化测试不作为当前阻塞项。
+- Room 历史/收藏/缓存延后：等 Detail / Player 主流程调试稳定后，再接入 Room 业务读写，避免在播放链路未稳定前扩大状态复杂度。
+
 ---
 
 ## Work Objectives
@@ -82,7 +88,7 @@
 - Hilt DI
 - Spider 插件兼容（至少 JAR 类型）
 - UDF 状态管理 (StateFlow<UiState>)
-- Room 本地存储（历史/收藏/缓存）
+- Room 本地存储（历史/收藏/缓存，Detail/Player 调试稳定后接入业务流）
 
 ### Must NOT Have (Guardrails)
 - ❌ 不使用 EventBus（用 Flow 替代）
@@ -104,9 +110,9 @@
 
 ### Test Decision
 - **Infrastructure exists**: NO (新建项目)
-- **Automated tests**: YES (TDD for Domain/Data layer, Tests-after for UI)
+- **Automated tests**: DEFERRED (当前阶段暂缓，不作为阻塞项)
 - **Framework**: JUnit 5 + Turbine (Flow testing) + MockK + Compose UI Test
-- **If TDD**: Domain UseCase 和 Repository 接口测试先行
+- **If TDD**: 后续恢复测试计划时，Domain UseCase 和 Repository 接口测试先行
 
 ### QA Policy
 - 每个任务包含 agent-executed QA scenarios
@@ -118,7 +124,7 @@
 
 ---
 
-## Module Map (4 modules)
+## Module Map (3 modules)
 
 ```
 app                  → Main application (com.github.tvbox.newbox)
@@ -147,7 +153,7 @@ app                  → Main application (com.github.tvbox.newbox)
 
 ```
 Wave 1 (Foundation — 5 tasks, parallel):
-├── 1. build-logic + version catalog [quick]
+├── 1. Version Catalog [quick]
 ├── 2. app shell + Hilt + Compose theme [quick]
 ├── 3. app:common — AppResult, CoroutineDispatchers, 扩展函数 [quick]
 ├── 4. app:domain — BaseUseCase + Domain Models [quick]
@@ -212,16 +218,15 @@ Wave FINAL (Verification — 4 parallel reviews):
 
 ## TODOs
 
-- [ ] 1. build-logic + Version Catalog
+- [ ] 1. Version Catalog
 
   **What to do**:
-  - 创建 `newBox/build-logic/` 目录，包含 convention plugins
   - 更新 `newBox/gradle/libs.versions.toml` version catalog
   - 定义所有依赖版本：Kotlin 2.3.x, Compose BOM, AGP 9.x, Hilt, Room, OkHttp, Media3, kotlinx.serialization, Coil 3, Navigation
-  - 创建 `AndroidLibraryConventionPlugin`、`AndroidApplicationConventionPlugin`、`ComposeConventionPlugin`、`HiltConventionPlugin`
+  - 直接在各模块 `build.gradle.kts` 中引用 version catalog；暂不引入 build-logic convention plugins
 
   **Must NOT do**:
-  - 不在 convention plugin 里硬编码版本——全部引用 version catalog
+  - 不新增 build-logic convention plugins
   - 不配置 ProGuard/R8（Phase 1 不需要）
 
   **Recommended Agent Profile**:
@@ -236,11 +241,10 @@ Wave FINAL (Verification — 4 parallel reviews):
 
   **Acceptance Criteria**:
   - [ ] `newBox/gradle/libs.versions.toml` 存在且包含所有版本
-  - [ ] `newBox/build-logic/` 包含至少 4 个 convention plugins
-  - [ ] 项目根 `settings.gradle.kts` 引用 convention plugins
+  - [ ] 各模块 `build.gradle.kts` 通过 version catalog 引用依赖
 
   **Commit**: YES
-  - Message: `build: add build-logic and version catalog`
+  - Message: `build: add version catalog`
 
 - [ ] 2. App Shell + Hilt + Compose Theme
 
@@ -408,7 +412,7 @@ Wave FINAL (Verification — 4 parallel reviews):
 - [ ] 7. **spider-jar** — JarSpiderLoader (DexClassLoader) + LegacySpiderAdapter (桥接旧 Spider abstract class → 新 Spider interface) [Wave 2]
 - [ ] 8. **app:home** — HomeViewModel + GetHomeContentUseCase + GetCategoryContentUseCase [Wave 2]
 - [ ] 9. **app:search** — SearchViewModel + SearchUseCase (多源并行搜索) [Wave 2]
-- [ ] 10. **app:data Room Schema** — VodRecord, VodCollect, Cache entities + DAOs + AppDatabase [Wave 2]
+- [ ] 10. **app:data Room Schema** — VodRecord, VodCollect, Cache entities + DAOs + AppDatabase [Deferred until Detail/Player 调试稳定]
 - [ ] 11. **app:ui.common + home UI** — AppTheme + 通用组件 + HomeScreen (分类+视频列表) + CategoryFilterSheet [Wave 3]
 - [ ] 12. **app:search UI** — SearchScreen (搜索栏+结果列表) [Wave 3]
 - [ ] 13. **Navigation** — AppNavHost (Home → Search → Detail → Player) [Wave 3]
@@ -427,19 +431,19 @@ Wave FINAL (Verification — 4 parallel reviews):
   验证每个 Must Have 存在，每个 Must NOT Have 不存在。检查 Spider 契约完整性。
 
 - [ ] F2. **Code Quality Review** — `unspecified-high`
-  运行 `./gradlew assembleDebug`。检查: 无 Java 文件、无 LiveData、无 EventBus、无 XML layout、无 Hawk。Compose 状态管理全部 UDF。验证代码按包名分层 (common/domain/data/ui/feature)。
+  运行 `./gradlew assembleDebug`。检查: 无 Java 文件、无 LiveData、无 EventBus、无 XML layout、无 Hawk。Compose 状态管理全部 UDF。验证代码按包名分层 (common/domain/data/ui/feature)。自动化测试暂不作为当前阻塞项。
 
 - [ ] F3. **Real QA** — `unspecified-high`
   启动应用 → 输入订阅 URL → 加载配置 → 浏览视频列表 → 搜索 → 查看详情 → 播放视频。全链路验证。
 
 - [ ] F4. **Scope Fidelity Check** — `deep`
-  验证未实现 Phase 3 内容（直播/DLNA/crash统计）。验证 spider-js 和 spider-py 模块未提前实现。验证只有 app + spider:spider-api + spider:spider-jar + build-logic 四个模块，无多余 core/feature 模块。
+  验证未实现 Phase 3 内容（直播/DLNA/crash统计）。验证 spider-js 和 spider-py 模块未提前实现。验证只有 app + spider:spider-api + spider:spider-jar 三个模块，无多余 core/feature 模块。
 
 ---
 
 ## Commit Strategy
 
-- **1**: `build: add build-logic and version catalog`
+- **1**: `build: add version catalog`
 - **2**: `app: add application shell with Hilt and Compose theme`
 - **3**: `app: add common package with AppResult and dispatchers`
 - **4**: `app: add domain package with base UseCase and models`
@@ -467,9 +471,9 @@ cd newBox && ./gradlew assembleDebug        # Expected: BUILD SUCCESSFUL
 ```
 
 ### Final Checklist
-- [ ] All "Must Have" present (三层架构, Kotlin, Compose, Hilt, Spider兼容, UDF, Room)
+- [ ] All current "Must Have" present (三层架构, Kotlin, Compose, Hilt, Spider兼容, UDF；Room 业务接入按调整计划后置)
 - [ ] All "Must NOT Have" absent (No EventBus, No LiveData, No OkGo, No XML, No Hawk, No ExoPlayer2)
 - [ ] Spider JAR plugin compatibility verified with at least one real plugin
 - [ ] Full user flow: subscribe → browse → search → detail → play
-- [ ] Module count = 4 (app + spider:spider-api + spider:spider-jar + build-logic)
+- [ ] Module count = 3 (app + spider:spider-api + spider:spider-jar)
 - [ ] Package structure follows common/domain/data/ui/feature convention

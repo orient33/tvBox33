@@ -1,5 +1,6 @@
 package com.github.tvbox.newbox.feature.detail
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.tvbox.newbox.domain.VodDetail
@@ -16,6 +17,8 @@ class DetailViewModel @Inject constructor(
     private val getDetailUseCase: GetDetailUseCase,
 ) : ViewModel() {
 
+    companion object { private const val TAG = "NewBox-Detail" }
+
     private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Idle)
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
@@ -26,6 +29,7 @@ class DetailViewModel @Inject constructor(
                 val detail = getDetailUseCase(GetDetailUseCase.Params(vodId, sourceKey))
                 _uiState.value = DetailUiState.Success(detail)
             } catch (e: Exception) {
+                Log.e(TAG, "Detail load failed sourceKey=$sourceKey, vodId=$vodId", e)
                 _uiState.value = DetailUiState.Error(e.message ?: "Failed to load detail")
             }
         }
