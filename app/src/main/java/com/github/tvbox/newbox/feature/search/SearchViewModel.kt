@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
+import com.github.tvbox.newbox.data.store.SettingsStore
 import com.github.tvbox.newbox.domain.SearchResult
 import com.github.tvbox.newbox.domain.usecase.SearchUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,12 +20,26 @@ import javax.inject.Inject
 class SearchViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val searchUseCase: SearchUseCase,
+    private val settingsStore: SettingsStore,
 ) : ViewModel() {
 
     companion object { private const val TAG = "NewBox-Search" }
 
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+
+    val listView: StateFlow<Boolean> = settingsStore.searchListView
+        .let { flow ->
+            val state = MutableStateFlow(false)
+            viewModelScope.launch { flow.collect { state.value = it } }
+            state.asStateFlow()
+        }
+
+    fun toggleListView() {
+        viewModelScope.launch {
+            settingsStore.setSearchListView(!listView.value)
+        }
+    }
 
     fun search(keyword: String) {
         if (keyword.isBlank()) return

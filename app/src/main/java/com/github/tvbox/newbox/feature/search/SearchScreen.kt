@@ -5,9 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -16,6 +21,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,10 +38,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.ui.common.ErrorView
 import com.github.tvbox.newbox.ui.common.LoadingView
@@ -53,6 +64,7 @@ fun SearchScreen(
     var query by rememberSaveable { mutableStateOf(initialQuery) }
     var active by rememberSaveable { mutableStateOf(initialQuery.isEmpty()) }
     var selectedSourceKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val listView by viewModel.listView.collectAsStateWithLifecycle()
 
     if (initialQuery.isNotBlank()) {
         LaunchedEffect(initialQuery) {
@@ -76,6 +88,14 @@ fun SearchScreen(
             leadingIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                }
+            },
+            trailingIcon = {
+                IconButton(onClick = { viewModel.toggleListView() }) {
+                    Icon(
+                        if (listView) Icons.Default.Apps else Icons.AutoMirrored.Filled.ViewList,
+                        contentDescription = if (listView) "卡片视图" else "列表视图",
+                    )
                 }
             },
             modifier = Modifier
@@ -103,6 +123,7 @@ fun SearchScreen(
                 onSourceSelect = { selectedSourceKey = it },
                 onVodClick = onVodClick,
                 progressText = "${state.completedSources}/${state.totalSources}",
+                listView = listView,
             )
             is SearchUiState.Success -> {
                 SearchResultContent(
@@ -110,7 +131,8 @@ fun SearchScreen(
                     selectedSourceKey = selectedSourceKey,
                     onSourceSelect = { selectedSourceKey = it },
                     onVodClick = onVodClick,
-                    progressText = "${state.totalSources}/${state.totalSources}"
+                    progressText = "${state.totalSources}/${state.totalSources}",
+                    listView = listView,
                 )
             }
         }
@@ -124,8 +146,10 @@ private fun SearchResultContent(
     onSourceSelect: (String?) -> Unit,
     onVodClick: (VodItem) -> Unit,
     progressText: String? = null,
+    listView: Boolean = false,
 ) {
     val allVods = results.flatMap { it.vodItems }
+    val sourceMap = results.associate { it.sourceKey to it.sourceName }
     val sourceFilters = results.map { result ->
         SourceFilter(
             sourceKey = result.sourceKey,
@@ -172,15 +196,31 @@ private fun SearchResultContent(
                     .width(112.dp)
                     .fillMaxSize(),
             )
-            LazyVerticalGrid(
-                modifier = Modifier.weight(1f),
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(displayVods) { vod ->
-                    VodCard(item = vod, onClick = onVodClick)
+            if (listView) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(displayVods) { vod ->
+                        VodListItem(
+                            item = vod,
+                            sourceName = sourceMap[vod.sourceKey].orEmpty(),
+                            onClick = onVodClick,
+                        )
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    modifier = Modifier.weight(1f),
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(displayVods) { vod ->
+                        VodCard(item = vod, onClick = onVodClick)
+                    }
                 }
             }
         }
@@ -259,6 +299,83 @@ private fun SourceFilterItem(
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelMedium,
             )
+        }
+    }
+}
+
+@Composable
+private fun VodListItem(
+    item: VodItem,
+    sourceName: String,
+    onClick: (VodItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick(item) },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
+        Row(modifier = Modifier.padding(6.dp).height(IntrinsicSize.Min)) {
+            AsyncImage(
+                model = item.pic,
+                contentDescription = item.name,
+                modifier = Modifier
+                    .size(width = 72.dp, height = 96.dp)
+                    .clip(MaterialTheme.shapes.small),
+                contentScale = ContentScale.Crop,
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (item.note.isNotBlank()) {
+                        Text(
+                            text = item.note,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    val metaParts = listOf(item.year, item.area, item.type).filter { it.isNotBlank() }
+                    if (metaParts.isNotEmpty()) {
+                        Text(
+                            text = metaParts.joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (sourceName.isNotBlank()) {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Text(
+                            text = sourceName,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
         }
     }
 }

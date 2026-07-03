@@ -3,6 +3,7 @@ package com.github.tvbox.newbox.data.store
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -31,6 +32,7 @@ class SettingsStore @Inject constructor(
         private val KEY_SUBSCRIPTION_TITLES = stringPreferencesKey("subscription_titles")
         private val KEY_SUBSCRIPTION_WAREHOUSES = stringPreferencesKey("subscription_warehouses")
         private val KEY_CURRENT_WAREHOUSE = stringPreferencesKey("current_warehouse")
+        private val KEY_SEARCH_LIST_VIEW = booleanPreferencesKey("search_list_view")
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -58,6 +60,10 @@ class SettingsStore @Inject constructor(
         runCatching { json.decodeFromString<Map<String, Int>>(raw) }.getOrDefault(emptyMap())
     }
 
+    val searchListView: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_SEARCH_LIST_VIEW] ?: false
+    }
+
     suspend fun addSubscriptionUrl(url: String) {
         context.dataStore.edit { prefs ->
             val existing = prefs[KEY_SUBSCRIPTION_URLS]?.toMutableSet() ?: mutableSetOf()
@@ -79,6 +85,12 @@ class SettingsStore @Inject constructor(
     suspend fun setCurrentSource(key: String) {
         context.dataStore.edit { prefs ->
             prefs[KEY_CURRENT_SOURCE] = key
+        }
+    }
+
+    suspend fun setSearchListView(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SEARCH_LIST_VIEW] = enabled
         }
     }
 
