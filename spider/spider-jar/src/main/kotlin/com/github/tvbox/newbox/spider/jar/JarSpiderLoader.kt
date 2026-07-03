@@ -9,6 +9,7 @@ import com.github.tvbox.newbox.spider.api.SpiderLoadException
 import com.github.tvbox.newbox.spider.api.SpiderLoader
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
 import com.github.tvbox.newbox.spider.api.SourceType
+import com.github.tvbox.newbox.spider.api.NullSpider
 import dalvik.system.DexClassLoader
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -46,6 +47,9 @@ class JarSpiderLoader(
 
     override suspend fun load(config: SpiderSourceConfig): Spider {
         com.github.catvod.Init.set(app)
+        if (config.api.isJsApi() || config.api.isPyApi()) {
+            throw SpiderLoadException("非JAR源不能由JarSpiderLoader加载: ${config.api}")
+        }
         spiders[config.key]?.let {
             Log.d(TAG, "load: cache hit key=${config.key}")
             return it
@@ -65,9 +69,7 @@ class JarSpiderLoader(
                 .loadClass("com.github.catvod.spider.$clsKey")
                 .getDeclaredConstructor()
                 .newInstance() as? com.github.catvod.crawler.Spider
-            if (legacy == null) {
-                throw SpiderLoadException("类不是Spider: $clsKey")
-            }
+            if (legacy == null) return NullSpider().also { Log.w(TAG, "load: class is not Spider key=${config.key} clsKey=$clsKey") }
 
             val adapted = LegacySpiderAdapter(legacy)
             val ext = config.ext ?: ""
@@ -76,10 +78,13 @@ class JarSpiderLoader(
             adapted
         } catch (e: SpiderLoadException) {
             throw e
+        } catch (e: ClassNotFoundException) {
+            Log.w(TAG, "load: class not found key=${config.key} clsKey=$clsKey")
+            NullSpider()
         } catch (e: Throwable) {
             val cause = e.cause ?: e
             Log.e(TAG, "load: failed key=${config.key} clsKey=$clsKey: ${cause.message}", e)
-            throw SpiderLoadException("源 ${config.name} 加载失败: ${cause.message ?: e.javaClass.simpleName}", e)
+            NullSpider()
         }
 
         spiders[config.key] = spider
@@ -262,9 +267,10 @@ class JarSpiderLoader(
             return if (local.exists()) copyToReadOnly(local, File(jarCacheDir, local.name)) else null
         }
         val jarFile = File(jarCacheDir, "${md5Of(url)}.jar")
-        if (jarFile.exists()) return jarFile
+        if (jarFile.exists() && jarFile.isZipJar()) return jarFile
+        if (jarFile.exists()) jarFile.delete()
         return try {
-            val request = Request.Builder().url(url).build()
+            val request = Request.Builder().url(url).tvBoxJarHeaders().build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val body = response.body ?: return null
@@ -273,16 +279,21 @@ class JarSpiderLoader(
                 tmpFile.outputStream().use { output ->
                     if (isImgJar) {
                         val html = body.string()
-                        output.write(extractJarFromImg(html))
+                        output.write(extractImgJarPayload(html))
                     } else {
                         body.byteStream().use { input -> input.copyTo(output) }
                     }
                 }
                 tmpFile.renameTo(jarFile)
             }
+            if (!jarFile.isZipJar()) {
+                jarFile.delete()
+                return null
+            }
             jarFile.setReadOnly()
             jarFile
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "downloadJar: failed url=$url: ${e.message}")
             null
         }
     }
@@ -301,10 +312,8 @@ class JarSpiderLoader(
         return lastSegment.removePrefix("csp_").substringBefore(".jar").substringBefore("?")
     }
 
-    private fun extractJarFromImg(html: String): ByteArray {
-        val base64 = html.substringAfter("base64,").substringBefore("\"").substringBefore("'")
-        return android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
-    }
+    private fun String.isJsApi(): Boolean = endsWith(".js") || contains(".js?")
+    private fun String.isPyApi(): Boolean = endsWith(".py") || contains(".py?")
 
     private fun md5Of(input: String): String {
         val digest = MessageDigest.getInstance("MD5").digest(input.toByteArray())

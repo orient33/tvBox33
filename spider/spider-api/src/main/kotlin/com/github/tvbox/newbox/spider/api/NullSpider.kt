@@ -2,7 +2,6 @@ package com.github.tvbox.newbox.spider.api
 
 import android.content.Context
 
-/** No-op Spider fallback — mirrors original SpiderNull. Returns empty results instead of crashing. */
 class NullSpider : Spider {
     override suspend fun init(context: Context, extend: String) {}
     override suspend fun homeContent(filter: Boolean): String = """{"categories":[],"list":[]}"""
