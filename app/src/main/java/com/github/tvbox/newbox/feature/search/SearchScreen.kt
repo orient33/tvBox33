@@ -80,7 +80,7 @@ fun SearchScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 2.dp),
         ) {
             // Search suggestions placeholder
         }
@@ -203,7 +203,7 @@ private fun SourceFilterRail(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        modifier = modifier.padding(start = 4.dp, end = 4.dp, top = 1.dp, bottom = 1.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (!progressText.isNullOrBlank()) {
@@ -252,25 +252,13 @@ private fun SourceFilterItem(
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp)) {
-            SourceFilterLabel(name = name, count = count)
+        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
+            Text(
+                text = "$count $name",
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
-    }
-}
-
-@Composable
-private fun SourceFilterLabel(name: String, count: Int) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = name,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.labelMedium,
-        )
-        Text(
-            text = count.toString(),
-            maxLines = 1,
-            style = MaterialTheme.typography.labelSmall,
-        )
     }
 }
