@@ -86,7 +86,7 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = currentSource?.name ?: "NewBox",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -97,16 +97,6 @@ fun HomeScreen(
                             contentDescription = "切换源",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            },
-            navigationIcon = {
-                if (sources.isNotEmpty()) {
-                    TextButton(onClick = { showSourceDialog = true }) {
-                        Text(
-                            text = "${sources.size}网站",
-                            style = MaterialTheme.typography.labelMedium,
                         )
                     }
                 }
