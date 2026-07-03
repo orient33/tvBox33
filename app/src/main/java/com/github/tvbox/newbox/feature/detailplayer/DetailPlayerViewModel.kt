@@ -82,6 +82,24 @@ class DetailPlayerViewModel @Inject constructor(
         }
     }
 
+    fun playNext() {
+        val detail = (_detailState.value as? DetailUiState.Success)?.detail ?: return
+        val currentIndex = _selectedEpisodeIndex.value ?: return
+        val flag = currentFlag(detail)
+        val episodes = detail.seriesMap[flag] ?: return
+        if (currentIndex + 1 < episodes.size) {
+            selectEpisode(currentIndex + 1)
+        }
+    }
+
+    fun playPrevious() {
+        val detail = (_detailState.value as? DetailUiState.Success)?.detail ?: return
+        val currentIndex = _selectedEpisodeIndex.value ?: return
+        if (currentIndex > 0) {
+            selectEpisode(currentIndex - 1)
+        }
+    }
+
     fun toggleFullscreen() {
         _isFullscreen.value = !_isFullscreen.value
     }

@@ -1,5 +1,9 @@
 package com.github.tvbox.newbox
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -26,6 +30,8 @@ import kotlinx.serialization.Serializable
     val sourceKey: String = "",
 )
 
+private const val ANIM_DURATION = 300
+
 @Composable
 fun AppNavHost(
     navController: NavHostController,
@@ -43,6 +49,10 @@ fun AppNavHost(
         navController = navController,
         startDestination = HomeRoute,
         modifier = modifier,
+        enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(ANIM_DURATION)) },
+        exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(ANIM_DURATION)) },
+        popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(ANIM_DURATION)) },
+        popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(ANIM_DURATION)) },
     ) {
         composable<HomeRoute> {
             HomeScreen(

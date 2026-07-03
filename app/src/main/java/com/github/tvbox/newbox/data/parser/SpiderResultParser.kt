@@ -63,10 +63,12 @@ class SpiderResultParser @Inject constructor() {
         }
         val rawUrl = result.url.ifBlank { result.playUrl }
         val url = rewriteProxyUrl(rawUrl)
+        val needSniff = result.parse == 1 && url.isNotBlank()
         return PlayerResult(
             url = url,
             headers = headers,
             subtitles = emptyList(),
+            needSniff = needSniff,
         )
     }
 

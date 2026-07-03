@@ -3,6 +3,10 @@ package com.github.tvbox.newbox.spider.jar
 import android.content.Context
 import android.util.Log
 import com.github.tvbox.newbox.spider.api.Spider
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.CompletableFuture
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class LegacySpiderAdapter(
     private val legacySpider: com.github.catvod.crawler.Spider,
@@ -10,16 +14,28 @@ class LegacySpiderAdapter(
 
     companion object { private const val TAG = "NewBox-Legacy" }
 
+    private suspend fun <T> runBlockingCall(block: () -> T): T {
+        val future = CompletableFuture.supplyAsync(block)
+        return suspendCancellableCoroutine { cont ->
+            future.handle { result, error ->
+                if (error != null) cont.resumeWithException(error)
+                else cont.resume(result)
+                null
+            }
+            cont.invokeOnCancellation { future.cancel(true) }
+        }
+    }
+
     override suspend fun init(context: Context, extend: String) {
-        legacySpider.init(context, extend)
+        runBlockingCall { legacySpider.init(context, extend) }
     }
 
     override suspend fun homeContent(filter: Boolean): String {
-        return legacySpider.homeContent(filter)
+        return runBlockingCall { legacySpider.homeContent(filter) }
     }
 
     override suspend fun homeVideoContent(): String {
-        return legacySpider.homeVideoContent()
+        return runBlockingCall { legacySpider.homeVideoContent() }
     }
 
     override suspend fun categoryContent(
@@ -28,12 +44,14 @@ class LegacySpiderAdapter(
         filter: Boolean,
         extend: Map<String, String>,
     ): String {
-        return legacySpider.categoryContent(tid, pg, filter, HashMap(extend as Map<String, String>))
+        return runBlockingCall {
+            legacySpider.categoryContent(tid, pg, filter, HashMap(extend as Map<String, String>))
+        }
     }
 
     override suspend fun detailContent(ids: List<String>): String {
         return try {
-            val result = legacySpider.detailContent(ids)
+            val result = runBlockingCall { legacySpider.detailContent(ids) }
             if (result.isBlank()) {
                 Log.w(TAG, "detailContent returned blank for ids=$ids")
                 throw IllegalStateException("详情数据为空，该源可能不可用")
@@ -47,13 +65,15 @@ class LegacySpiderAdapter(
 
     override suspend fun searchContent(key: String, quick: Boolean, pg: String): String {
         return try {
-            if (pg == "1") {
-                legacySpider.searchContent(key, quick)
-            } else {
-                legacySpider.searchContent(key, quick, pg)
+            runBlockingCall {
+                if (pg == "1") {
+                    legacySpider.searchContent(key, quick)
+                } else {
+                    legacySpider.searchContent(key, quick, pg)
+                }
             }
         } catch (e: NoSuchMethodError) {
-            legacySpider.searchContent(key, quick)
+            runBlockingCall { legacySpider.searchContent(key, quick) }
         }
     }
 
@@ -62,12 +82,12 @@ class LegacySpiderAdapter(
         id: String,
         vipFlags: List<String>,
     ): String {
-        return legacySpider.playerContent(flag, id, vipFlags)
+        return runBlockingCall { legacySpider.playerContent(flag, id, vipFlags) }
     }
 
     override suspend fun proxyLocal(params: Map<String, String>): Array<Any?> {
         return try {
-            val result = legacySpider.proxyLocal(HashMap(params))
+            val result = runBlockingCall { legacySpider.proxyLocal(HashMap(params)) }
             if (result != null && result.isNotEmpty()) result else emptyArray()
         } catch (e: Exception) {
             Log.e(TAG, "proxyLocal: exception=${e.message}", e)
@@ -77,7 +97,7 @@ class LegacySpiderAdapter(
 
     override suspend fun proxy(params: Map<String, String>): Array<Any?> {
         return try {
-            val result = legacySpider.proxy(HashMap(params))
+            val result = runBlockingCall { legacySpider.proxy(HashMap(params)) }
             if (result != null && result.isNotEmpty()) result else emptyArray()
         } catch (e: Exception) {
             Log.e(TAG, "proxy: exception=${e.message}", e)

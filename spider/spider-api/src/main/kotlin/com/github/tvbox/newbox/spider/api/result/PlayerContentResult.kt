@@ -9,7 +9,7 @@ data class PlayerContentResult(
     val url: String = "",
     val header: Map<String, String> = emptyMap(),
     val flag: String = "",
-    val UA: String = "",
-    val referer: String = "",
-    val jx: String = "",
+    @Serializable(with = FlexibleStringSerializer::class) val UA: String = "",
+    @Serializable(with = FlexibleStringSerializer::class) val referer: String = "",
+    @Serializable(with = FlexibleStringSerializer::class) val jx: String = "",
 )

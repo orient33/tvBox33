@@ -1,22 +1,28 @@
 package com.github.tvbox.newbox.domain.usecase
 
+import android.content.Context
 import android.util.Log
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.BaseUseCase
 import com.github.tvbox.newbox.domain.PlayerResult
+import com.github.tvbox.newbox.player.VideoSniffer
 import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 class GetPlayerUrlUseCase @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val spiderFactory: SpiderFactory,
     private val subscriptionRepository: SubscriptionRepository,
     private val parser: SpiderResultParser,
@@ -25,7 +31,8 @@ class GetPlayerUrlUseCase @Inject constructor(
 
     companion object {
         private const val TAG = "NewBox-Player"
-        private const val PLAYER_TIMEOUT_MS = 30_000L
+        private const val PLAYER_TIMEOUT_MS = 15_000L
+        private const val SNIFF_TIMEOUT_MS = 20_000L
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -63,7 +70,26 @@ class GetPlayerUrlUseCase @Inject constructor(
             throw e
         }
         val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.PlayerContentResult>(resultJson)
-        parser.parsePlayerContent(result)
+        val playerResult = parser.parsePlayerContent(result)
+
+        if (playerResult.needSniff) {
+            Log.d(TAG, "parse==1, sniffing video URL from ${playerResult.url}")
+            val sniffer = VideoSniffer(appContext)
+            val sniffedUrl = withContext(Dispatchers.Main) {
+                withTimeoutOrNull(SNIFF_TIMEOUT_MS) {
+                    sniffer.sniff(playerResult.url, playerResult.headers)
+                }
+            }
+            if (sniffedUrl != null) {
+                Log.d(TAG, "sniffed video URL: $sniffedUrl")
+                playerResult.copy(url = sniffedUrl, needSniff = false)
+            } else {
+                Log.e(TAG, "sniff failed, no video URL found")
+                throw IllegalStateException("嗅探播放地址失败，未找到视频流")
+            }
+        } else {
+            playerResult
+        }
     }
 
     private suspend fun <T> first(flow: kotlinx.coroutines.flow.Flow<T>): T = flow.first()
