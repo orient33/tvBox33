@@ -5,14 +5,15 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
+import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.server.SpiderProxyServer
 import com.github.tvbox.newbox.spider.api.SpiderFactory
-import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.osc.server.RemoteServer
-import dagger.hilt.android.HiltAndroidApp
+import com.whl.quickjs.android.QuickJSLoader
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 
@@ -31,6 +32,7 @@ class App : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        QuickJSLoader.init()
         startProxyServer()
     }
 

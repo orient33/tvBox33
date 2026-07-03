@@ -112,7 +112,7 @@ fun SiteJson.toSourceConfig(globalSpider: String = "", baseUrl: String = ""): So
     key = key,
     name = name,
     api = api,
-    type = SourceType.fromCode(type),
+    type = SourceType.fromSite(type, api),
     searchable = searchable == 1,
     quickSearch = quickSearch == 1,
     filterable = filterable == 1,
@@ -124,6 +124,11 @@ fun SiteJson.toSourceConfig(globalSpider: String = "", baseUrl: String = ""): So
     playerType = playerType,
     clickSelector = click.ifBlank { null },
 )
+
+private fun SourceType.Companion.fromSite(type: Int, api: String): SourceType = when {
+    api.endsWith(".js") || api.contains(".js?") -> SourceType.JS
+    else -> SourceType.fromCode(type)
+}
 
 private fun JsonObject.primString(key: String): String {
     val v = this[key] ?: return ""

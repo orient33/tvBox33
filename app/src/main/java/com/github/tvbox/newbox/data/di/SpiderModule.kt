@@ -5,6 +5,7 @@ import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderLoader
 import com.github.tvbox.newbox.spider.api.SourceType
 import com.github.tvbox.newbox.spider.jar.JarSpiderLoader
+import com.github.tvbox.newbox.spider.jar.JsSpiderLoader
 import com.github.tvbox.newbox.spider.jar.T4SpiderLoader
 import dagger.Module
 import dagger.Provides
@@ -25,8 +26,9 @@ object SpiderModule {
         client: OkHttpClient,
     ): SpiderFactory = object : SpiderFactory {
         private val jarLoader by lazy { JarSpiderLoader(context, client) }
+        private val jsLoader by lazy { JsSpiderLoader(context, client) }
         private val t4Loader by lazy { T4SpiderLoader(client) }
-        private val loaders by lazy { listOf(jarLoader, t4Loader) }
+        private val loaders by lazy { listOf(jsLoader, jarLoader, t4Loader) }
 
         override fun createLoader(type: SourceType): SpiderLoader {
             return loaders.firstOrNull { it.isSupported(type) }
@@ -35,6 +37,7 @@ object SpiderModule {
 
         override fun clearCache() {
             jarLoader.clearCache()
+            jsLoader.clearCache()
         }
     }
 }

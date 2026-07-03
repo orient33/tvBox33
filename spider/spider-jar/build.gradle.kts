@@ -32,4 +32,7 @@ dependencies {
     ksp(libs.hilt.android.compiler)
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp)
+    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.jsoup:jsoup:1.18.3")
 }

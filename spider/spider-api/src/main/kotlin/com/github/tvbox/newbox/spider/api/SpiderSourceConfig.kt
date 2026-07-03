@@ -18,6 +18,7 @@ data class SpiderSourceConfig(
 enum class SourceType(val code: Int) {
     JAR(0),       // type=0: csp_* class, needs DexClassLoader + .jar
     HTTP_API(1),  // type=1: Standard CMS HTTP API (api.php/provide/vod/)
+    JS(2),
     SPIDER(3),    // type=3: JAR+JS hybrid spider (csp_* or drpy2)
     T4(4);        // type=4: Server-side T4 spider
 
@@ -25,13 +26,14 @@ enum class SourceType(val code: Int) {
         fun fromCode(code: Int): SourceType = when (code) {
             0 -> JAR
             1 -> HTTP_API
+            2 -> JS
             3 -> SPIDER
             4 -> T4
             else -> JAR
         }
 
         fun fromApi(api: String): SourceType = when {
-            api.endsWith(".js") || api.contains(".js?") -> SPIDER
+            api.endsWith(".js") || api.contains(".js?") -> JS
             api.endsWith(".py") || api.contains(".py?") -> SPIDER
             api.startsWith("http://") || api.startsWith("https://") -> HTTP_API
             else -> JAR
