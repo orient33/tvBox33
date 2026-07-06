@@ -60,6 +60,9 @@ class DefaultSubscriptionRepository @Inject constructor(
     private val _sourceCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     override val sourceCounts: StateFlow<Map<String, Int>> = _sourceCounts.asStateFlow()
 
+    private val _sourcesLoaded = MutableStateFlow(false)
+    override val sourcesLoaded: StateFlow<Boolean> = _sourcesLoaded.asStateFlow()
+
     override val currentSubscriptionUrl: StateFlow<String?> = combine(
         _sources,
         settingsStore.currentSourceKey,
@@ -95,6 +98,7 @@ class DefaultSubscriptionRepository @Inject constructor(
                     }
                 }
             }
+            _sourcesLoaded.value = true
         }
     }
 

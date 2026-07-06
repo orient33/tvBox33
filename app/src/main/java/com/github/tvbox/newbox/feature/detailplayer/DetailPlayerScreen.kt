@@ -732,7 +732,7 @@ private fun PlayerBottomBar(
     val sliderValue = (currentPosition.toFloat() / safeDuration).coerceIn(0f, 1f)
     val bufferedValue = (bufferedPercentage / 100f).coerceIn(0f, 1f)
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
@@ -741,76 +741,72 @@ private fun PlayerBottomBar(
                 ),
             )
             .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onTogglePlay) {
+        IconButton(onClick = onTogglePlay) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isPlaying) "暂停" else "播放",
+                tint = Color.White,
+            )
+        }
+
+        if (isFullscreen && hasEpisodes) {
+            IconButton(onClick = onPreviousEpisode, enabled = hasPrevious) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "暂停" else "播放",
+                    Icons.Default.SkipPrevious,
+                    contentDescription = "上一集",
+                    tint = if (hasPrevious) Color.White else Color(0x55FFFFFF),
+                )
+            }
+        }
+
+        Text(
+            text = formatTime(currentPosition),
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
+
+        ThinProgressSlider(
+            progress = sliderValue,
+            buffered = bufferedValue,
+            onProgressChange = { fraction ->
+                onSeekTo((fraction * safeDuration).toLong())
+            },
+            modifier = Modifier.weight(1f),
+        )
+
+        Text(
+            text = formatTime(duration),
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
+
+        if (isFullscreen && hasEpisodes) {
+            IconButton(onClick = onNextEpisode, enabled = hasNext) {
+                Icon(
+                    Icons.Default.SkipNext,
+                    contentDescription = "下一集",
+                    tint = if (hasNext) Color.White else Color(0x55FFFFFF),
+                )
+            }
+            IconButton(onClick = onSelectEpisode) {
+                Icon(
+                    Icons.AutoMirrored.Filled.PlaylistPlay,
+                    contentDescription = "选集",
                     tint = Color.White,
                 )
             }
+        }
 
-            if (isFullscreen && hasEpisodes) {
-                IconButton(onClick = onPreviousEpisode, enabled = hasPrevious) {
-                    Icon(
-                        Icons.Default.SkipPrevious,
-                        contentDescription = "上一集",
-                        tint = if (hasPrevious) Color.White else Color(0x55FFFFFF),
-                    )
-                }
-            }
-
-            Text(
-                text = formatTime(currentPosition),
-                color = Color.White,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp),
+        IconButton(onClick = onFullscreenClick) {
+            Icon(
+                imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                contentDescription = if (isFullscreen) "退出全屏" else "全屏",
+                tint = Color.White,
             )
-
-            ThinProgressSlider(
-                progress = sliderValue,
-                buffered = bufferedValue,
-                onProgressChange = { fraction ->
-                    onSeekTo((fraction * safeDuration).toLong())
-                },
-                modifier = Modifier.weight(1f),
-            )
-
-            Text(
-                text = formatTime(duration),
-                color = Color.White,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 6.dp),
-            )
-
-            if (isFullscreen && hasEpisodes) {
-                IconButton(onClick = onNextEpisode, enabled = hasNext) {
-                    Icon(
-                        Icons.Default.SkipNext,
-                        contentDescription = "下一集",
-                        tint = if (hasNext) Color.White else Color(0x55FFFFFF),
-                    )
-                }
-                IconButton(onClick = onSelectEpisode) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.PlaylistPlay,
-                        contentDescription = "选集",
-                        tint = Color.White,
-                    )
-                }
-            }
-
-            IconButton(onClick = onFullscreenClick) {
-                Icon(
-                    imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                    contentDescription = if (isFullscreen) "退出全屏" else "全屏",
-                    tint = Color.White,
-                )
-            }
         }
     }
 }
@@ -836,14 +832,31 @@ private fun DetailContent(
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
-            Text(
-                text = detail.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = detail.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (detail.description.isNotBlank()) {
+                    Text(
+                        text = "详情 >>",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { onSynopsisClick() }
+                            .padding(start = 8.dp),
+                    )
+                }
+            }
         }
 
         item {
@@ -865,25 +878,16 @@ private fun DetailContent(
 
         if (detail.description.isNotBlank()) {
             item {
-                Column(
+                Text(
+                    text = detail.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onSynopsisClick() }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = detail.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "详情 >>",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                )
             }
         }
 

@@ -68,8 +68,13 @@ fun SearchScreen(
 
     if (initialQuery.isNotBlank()) {
         LaunchedEffect(initialQuery) {
-            selectedSourceKey = null
-            viewModel.search(initialQuery)
+            val state = viewModel.uiState.value
+            val alreadyHasResults = (state is SearchUiState.Success && state.keyword == initialQuery) ||
+                (state is SearchUiState.Searching && state.keyword == initialQuery)
+            if (!alreadyHasResults) {
+                selectedSourceKey = null
+                viewModel.search(initialQuery)
+            }
         }
     }
 
@@ -124,6 +129,7 @@ fun SearchScreen(
                 onVodClick = onVodClick,
                 progressText = "${state.completedSources}/${state.totalSources}",
                 listView = listView,
+                isLoading = true,
             )
             is SearchUiState.Success -> {
                 SearchResultContent(
@@ -147,6 +153,7 @@ private fun SearchResultContent(
     onVodClick: (VodItem) -> Unit,
     progressText: String? = null,
     listView: Boolean = false,
+    isLoading: Boolean = false,
 ) {
     val allVods = results.flatMap { it.vodItems }
     val sourceMap = results.associate { it.sourceKey to it.sourceName }
@@ -176,12 +183,16 @@ private fun SearchResultContent(
                     .width(112.dp)
                     .fillMaxSize(),
             )
-            Column(
-                modifier = Modifier.weight(1f).fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text("没有找到结果", style = MaterialTheme.typography.bodyLarge)
+            if (isLoading) {
+                LoadingView(modifier = Modifier.weight(1f))
+            } else {
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text("没有找到结果", style = MaterialTheme.typography.bodyLarge)
+                }
             }
         }
     } else {

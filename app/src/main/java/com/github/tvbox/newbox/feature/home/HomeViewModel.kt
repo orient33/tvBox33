@@ -52,6 +52,8 @@ class HomeViewModel @Inject constructor(
     val currentSource: StateFlow<SourceConfig?> = subscriptionRepository.currentSource
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val sourcesLoaded: StateFlow<Boolean> = subscriptionRepository.sourcesLoaded
+
     init {
         viewModelScope.launch {
             combine(
@@ -69,7 +71,9 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun loadFirstPage(source: SourceConfig?, categoryId: String?, filters: Map<String, String>) {
         if (source == null) {
-            uiStateFlow.value = HomeUiState.Error("No source selected")
+            if (subscriptionRepository.sourcesLoaded.value) {
+                uiStateFlow.value = HomeUiState.Error("No source selected")
+            }
             return
         }
         isLoadingMoreFlow.value = false
