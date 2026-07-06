@@ -69,7 +69,13 @@ class GetPlayerUrlUseCase @Inject constructor(
             Log.e(TAG, "playerContent failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}", e)
             throw e
         }
-        val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.PlayerContentResult>(resultJson)
+        val result = try {
+            json.decodeFromString<com.github.tvbox.newbox.spider.api.result.PlayerContentResult>(resultJson)
+        } catch (e: Exception) {
+            Log.e(TAG, "playerContent JSON parse failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}, error=${e.javaClass.simpleName}: ${e.message}", e)
+            Log.e(TAG, "playerContent raw JSON (first 500 chars): ${resultJson.take(500)}")
+            throw IllegalStateException("解析播放地址失败: ${e.message}", e)
+        }
         val playerResult = parser.parsePlayerContent(result)
 
         if (playerResult.needSniff) {

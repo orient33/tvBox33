@@ -82,7 +82,14 @@ class LegacySpiderAdapter(
         id: String,
         vipFlags: List<String>,
     ): String {
-        return runBlockingCall { legacySpider.playerContent(flag, id, vipFlags) }
+        return try {
+            val result = runBlockingCall { legacySpider.playerContent(flag, id, vipFlags) }
+            Log.d(TAG, "playerContent: flag=$flag, id=$id, result=${result.take(500)}")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "playerContent failed: flag=$flag, id=$id, error=${e.javaClass.simpleName}: ${e.message}", e)
+            throw e
+        }
     }
 
     override suspend fun proxyLocal(params: Map<String, String>): Array<Any?> {
