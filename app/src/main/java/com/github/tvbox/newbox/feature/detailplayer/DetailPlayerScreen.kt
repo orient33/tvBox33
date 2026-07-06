@@ -28,7 +28,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -969,7 +968,7 @@ private fun DetailContent(
             item {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     val limit = minOf(episodes.size, INLINE_EPISODE_LIMIT)
@@ -997,11 +996,12 @@ private fun EpisodeCard(
     episode: Episode,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.clickable { onClick() },
+        modifier = modifier.clickable { onClick() },
     ) {
         Text(
             text = episode.name,
@@ -1096,6 +1096,7 @@ private fun AllEpisodesSheetContent(
                 episode = episode,
                 isSelected = index == selectedIndex,
                 onClick = { onEpisodeSelected(index) },
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
