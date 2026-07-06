@@ -22,8 +22,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.AlertDialog
@@ -61,7 +61,8 @@ import com.github.tvbox.newbox.ui.common.VodCard
 fun HomeScreen(
     onVodClick: (VodItem) -> Unit,
     onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit = {},
+    onMineClick: () -> Unit = {},
+    onSubscriptionClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -108,8 +109,8 @@ fun HomeScreen(
                 IconButton(onClick = onSearchClick) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")
                 }
-                IconButton(onClick = onSettingsClick) {
-                    Icon(Icons.Default.Settings, contentDescription = "设置")
+                IconButton(onClick = onMineClick) {
+                    Icon(Icons.Default.Person, contentDescription = "我的")
                 }
             },
         )
@@ -120,7 +121,9 @@ fun HomeScreen(
                 val isNoSource = state.message.contains("No source selected")
                 if (isNoSource) {
                     Column(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable { onSubscriptionClick() },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -136,7 +139,7 @@ fun HomeScreen(
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            text = "点击右上角 ⚙ 设置添加订阅",
+                            text = "点击右上角头像添加订阅",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
@@ -178,8 +181,8 @@ fun HomeScreen(
                                     Text("切换源")
                                 }
                             }
-                            TextButton(onClick = onSettingsClick) {
-                                Text("设置")
+                            TextButton(onClick = onMineClick) {
+                                Text("我的")
                             }
                         }
                     }
