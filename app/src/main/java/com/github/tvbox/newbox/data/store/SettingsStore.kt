@@ -33,6 +33,7 @@ class SettingsStore @Inject constructor(
         private val KEY_SUBSCRIPTION_WAREHOUSES = stringPreferencesKey("subscription_warehouses")
         private val KEY_CURRENT_WAREHOUSE = stringPreferencesKey("current_warehouse")
         private val KEY_SEARCH_LIST_VIEW = booleanPreferencesKey("search_list_view")
+        private val KEY_FAVORITE_LIST_VIEW = booleanPreferencesKey("favorite_list_view")
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -64,6 +65,10 @@ class SettingsStore @Inject constructor(
         prefs[KEY_SEARCH_LIST_VIEW] ?: false
     }
 
+    val favoriteListView: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_FAVORITE_LIST_VIEW] ?: false
+    }
+
     suspend fun addSubscriptionUrl(url: String) {
         context.dataStore.edit { prefs ->
             val existing = prefs[KEY_SUBSCRIPTION_URLS]?.toMutableSet() ?: mutableSetOf()
@@ -91,6 +96,12 @@ class SettingsStore @Inject constructor(
     suspend fun setSearchListView(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[KEY_SEARCH_LIST_VIEW] = enabled
+        }
+    }
+
+    suspend fun setFavoriteListView(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_FAVORITE_LIST_VIEW] = enabled
         }
     }
 

@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 fun MineScreen(
     onBackClick: () -> Unit,
     onSubscriptionClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -91,7 +92,7 @@ fun MineScreen(
             MineEntry(
                 icon = Icons.Default.FavoriteBorder,
                 title = "我的收藏",
-                onClick = notImplemented,
+                onClick = onFavoriteClick,
             )
             MineEntry(
                 icon = Icons.Default.History,

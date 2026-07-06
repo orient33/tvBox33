@@ -1,5 +1,7 @@
 package com.github.tvbox.newbox.data.di
 
+import com.github.tvbox.newbox.data.repository.CollectRepository
+import com.github.tvbox.newbox.data.repository.DefaultCollectRepository
 import com.github.tvbox.newbox.data.repository.DefaultSubscriptionRepository
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import dagger.Binds
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindSubscriptionRepository(
         impl: DefaultSubscriptionRepository,
     ): SubscriptionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCollectRepository(
+        impl: DefaultCollectRepository,
+    ): CollectRepository
 }

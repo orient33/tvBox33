@@ -43,6 +43,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Lock
@@ -123,6 +125,7 @@ fun DetailPlayerScreen(
     val selectedFlagIndex by viewModel.selectedFlagIndex.collectAsStateWithLifecycle()
     val selectedEpisodeIndex by viewModel.selectedEpisodeIndex.collectAsStateWithLifecycle()
     val isFullscreen by viewModel.isFullscreen.collectAsStateWithLifecycle()
+    val isCollected by viewModel.isCollected.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
 
@@ -422,7 +425,11 @@ fun DetailPlayerScreen(
             onDismissRequest = { showSynopsisSheet = false },
             sheetState = sheetState,
         ) {
-            SynopsisSheetContent(detail = detail)
+            SynopsisSheetContent(
+                detail = detail,
+                isCollected = isCollected,
+                onToggleCollect = { viewModel.toggleCollect() },
+            )
         }
     }
 
@@ -989,17 +996,34 @@ private fun EpisodeCard(
 }
 
 @Composable
-private fun SynopsisSheetContent(detail: VodDetail) {
+private fun SynopsisSheetContent(
+    detail: VodDetail,
+    isCollected: Boolean,
+    onToggleCollect: () -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                text = detail.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = detail.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onToggleCollect) {
+                    Icon(
+                        imageVector = if (isCollected) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (isCollected) "取消收藏" else "收藏",
+                        tint = if (isCollected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
         if (detail.director.isNotBlank()) {
             item {

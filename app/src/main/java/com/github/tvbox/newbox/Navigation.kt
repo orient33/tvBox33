@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.feature.detailplayer.DetailPlayerScreen
+import com.github.tvbox.newbox.feature.favorite.FavoriteScreen
 import com.github.tvbox.newbox.feature.home.HomeScreen
 import com.github.tvbox.newbox.feature.mine.MineScreen
 import com.github.tvbox.newbox.feature.search.SearchScreen
@@ -23,6 +24,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class SearchRouteWithQuery(val query: String)
 @Serializable object SettingsRoute
 @Serializable object MineRoute
+@Serializable object FavoriteRoute
 @Serializable data class DetailRoute(
     val id: String,
     val name: String,
@@ -102,6 +104,13 @@ fun AppNavHost(
             MineScreen(
                 onBackClick = { navController.popBackStack() },
                 onSubscriptionClick = { navController.navigate(SettingsRoute) },
+                onFavoriteClick = { navController.navigate(FavoriteRoute) },
+            )
+        }
+        composable<FavoriteRoute> {
+            FavoriteScreen(
+                onBackClick = { navController.popBackStack() },
+                onVodClick = ::openVod,
             )
         }
     }

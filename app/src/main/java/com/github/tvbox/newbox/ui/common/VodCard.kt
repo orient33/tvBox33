@@ -1,6 +1,7 @@
 package com.github.tvbox.newbox.ui.common
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import com.github.tvbox.newbox.domain.VodItem
 fun VodCard(
     item: VodItem,
     onClick: (VodItem) -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -35,7 +37,16 @@ fun VodCard(
             .fillMaxWidth()
             .aspectRatio(2f / 3f)
             .clip(MaterialTheme.shapes.medium)
-            .clickable { onClick(item) },
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = { onClick(item) },
+                        onLongClick = onLongClick,
+                    )
+                } else {
+                    Modifier.clickable { onClick(item) }
+                },
+            ),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(

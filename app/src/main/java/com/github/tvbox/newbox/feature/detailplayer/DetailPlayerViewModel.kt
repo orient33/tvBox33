@@ -3,14 +3,19 @@ package com.github.tvbox.newbox.feature.detailplayer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.tvbox.newbox.data.repository.CollectRepository
+import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.PlayerResult
 import com.github.tvbox.newbox.domain.VodDetail
 import com.github.tvbox.newbox.domain.usecase.GetDetailUseCase
 import com.github.tvbox.newbox.domain.usecase.GetPlayerUrlUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,6 +23,8 @@ import javax.inject.Inject
 class DetailPlayerViewModel @Inject constructor(
     private val getDetailUseCase: GetDetailUseCase,
     private val getPlayerUrlUseCase: GetPlayerUrlUseCase,
+    private val collectRepository: CollectRepository,
+    private val subscriptionRepository: SubscriptionRepository,
 ) : ViewModel() {
 
     companion object { private const val TAG = "NewBox-DetailPlayer" }
@@ -37,7 +44,16 @@ class DetailPlayerViewModel @Inject constructor(
     private val _isFullscreen = MutableStateFlow(false)
     val isFullscreen: StateFlow<Boolean> = _isFullscreen.asStateFlow()
 
+    private val _currentVodId = MutableStateFlow<String?>(null)
+    val isCollected: StateFlow<Boolean> = kotlinx.coroutines.flow.combine(
+        _currentVodId,
+        collectRepository.allCollects,
+    ) { vodId, collects ->
+        vodId != null && collects.any { it.vodId == vodId }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun loadDetail(vodId: String, sourceKey: String) {
+        _currentVodId.value = vodId
         viewModelScope.launch {
             _detailState.value = DetailUiState.Loading
             _playerState.value = PlayerUiState.Idle
@@ -50,6 +66,16 @@ class DetailPlayerViewModel @Inject constructor(
                 Log.e(TAG, "loadDetail FAIL sourceKey=$sourceKey, vodId=$vodId, ${e.javaClass.simpleName}: ${e.message}", e)
                 _detailState.value = DetailUiState.Error(e.message ?: "Failed to load detail")
             }
+        }
+    }
+
+    fun toggleCollect() {
+        val detail = (_detailState.value as? DetailUiState.Success)?.detail ?: return
+        viewModelScope.launch {
+            val sourceName = subscriptionRepository.sources
+                .first()
+                .firstOrNull { it.key == detail.sourceKey }?.name ?: ""
+            collectRepository.toggleCollect(detail, sourceName)
         }
     }
 
