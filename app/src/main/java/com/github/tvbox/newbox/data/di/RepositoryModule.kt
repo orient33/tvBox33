@@ -2,7 +2,9 @@ package com.github.tvbox.newbox.data.di
 
 import com.github.tvbox.newbox.data.repository.CollectRepository
 import com.github.tvbox.newbox.data.repository.DefaultCollectRepository
+import com.github.tvbox.newbox.data.repository.DefaultHistoryRepository
 import com.github.tvbox.newbox.data.repository.DefaultSubscriptionRepository
+import com.github.tvbox.newbox.data.repository.HistoryRepository
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import dagger.Binds
 import dagger.Module
@@ -25,4 +27,10 @@ abstract class RepositoryModule {
     abstract fun bindCollectRepository(
         impl: DefaultCollectRepository,
     ): CollectRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindHistoryRepository(
+        impl: DefaultHistoryRepository,
+    ): HistoryRepository
 }

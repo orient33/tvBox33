@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.tvbox.newbox.data.repository.CollectRepository
+import com.github.tvbox.newbox.data.repository.HistoryRepository
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.PlayerResult
 import com.github.tvbox.newbox.domain.VodDetail
@@ -24,6 +25,7 @@ class DetailPlayerViewModel @Inject constructor(
     private val getDetailUseCase: GetDetailUseCase,
     private val getPlayerUrlUseCase: GetPlayerUrlUseCase,
     private val collectRepository: CollectRepository,
+    private val historyRepository: HistoryRepository,
     private val subscriptionRepository: SubscriptionRepository,
 ) : ViewModel() {
 
@@ -76,6 +78,18 @@ class DetailPlayerViewModel @Inject constructor(
                 .first()
                 .firstOrNull { it.key == detail.sourceKey }?.name ?: ""
             collectRepository.toggleCollect(detail, sourceName)
+        }
+    }
+
+    fun recordHistory(progress: Long) {
+        val detail = (_detailState.value as? DetailUiState.Success)?.detail ?: return
+        val flag = currentFlag(detail)
+        val episodeIndex = _selectedEpisodeIndex.value ?: return
+        viewModelScope.launch {
+            val sourceName = subscriptionRepository.sources
+                .first()
+                .firstOrNull { it.key == detail.sourceKey }?.name ?: ""
+            historyRepository.recordHistory(detail, flag, episodeIndex, progress, sourceName)
         }
     }
 

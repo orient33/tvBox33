@@ -207,6 +207,25 @@ fun DetailPlayerScreen(
         }
     }
 
+    // ---- Record play history after 10s of continuous playback ----
+    var recordedEpisodeKey by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(isPlaying, selectedEpisodeIndex, playerState) {
+        val episodeKey = selectedEpisodeIndex?.toString()
+        if (playerState is PlayerUiState.Ready && isPlaying && episodeKey != null) {
+            while (true) {
+                delay(10_000)
+                viewModel.recordHistory(exoPlayer.currentPosition)
+                recordedEpisodeKey = episodeKey
+            }
+        }
+    }
+
+    LaunchedEffect(isPlaying, selectedEpisodeIndex) {
+        if (!isPlaying && playerState is PlayerUiState.Ready && recordedEpisodeKey == selectedEpisodeIndex?.toString()) {
+            viewModel.recordHistory(exoPlayer.currentPosition)
+        }
+    }
+
     BackHandler(enabled = isFullscreen) {
         viewModel.toggleFullscreen()
     }

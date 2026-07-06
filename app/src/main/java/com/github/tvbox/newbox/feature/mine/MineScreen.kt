@@ -53,6 +53,7 @@ fun MineScreen(
     onBackClick: () -> Unit,
     onSubscriptionClick: () -> Unit,
     onFavoriteClick: () -> Unit,
+    onHistoryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,7 +98,7 @@ fun MineScreen(
             MineEntry(
                 icon = Icons.Default.History,
                 title = "观看历史",
-                onClick = notImplemented,
+                onClick = onHistoryClick,
             )
             MineEntry(
                 icon = Icons.Default.Equalizer,
