@@ -108,7 +108,7 @@ import com.github.tvbox.newbox.ui.common.ErrorView
 import com.github.tvbox.newbox.ui.common.LoadingView
 import kotlinx.coroutines.delay
 
-private const val INLINE_EPISODE_LIMIT = 20
+private const val INLINE_EPISODE_LIMIT = 60
 private const val CONTROLS_AUTO_HIDE_MS = 5_000L
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -966,20 +966,13 @@ private fun DetailContent(
             }
         } else {
             item {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    val limit = minOf(episodes.size, INLINE_EPISODE_LIMIT)
-                    repeat(limit) { index ->
-                        EpisodeCard(
-                            episode = episodes[index],
-                            isSelected = index == selectedEpisodeIndex,
-                            onClick = { onEpisodeSelected(index) },
-                        )
-                    }
-                }
+                val limit = minOf(episodes.size, INLINE_EPISODE_LIMIT)
+                EpisodeGrid(
+                    episodes = episodes.take(limit),
+                    selectedIndex = selectedEpisodeIndex,
+                    onEpisodeSelected = onEpisodeSelected,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
             }
         }
 
@@ -990,6 +983,77 @@ private fun DetailContent(
 // ---------------------------------------------------------------------------
 // Sheet contents
 // ---------------------------------------------------------------------------
+
+// 纯数字（含正整数）判定：1 2 3 ... 12 等
+private val pureNumberRegex = Regex("^\\d+$")
+
+// 第X集 / 第XX集 等：含非数字字符但较短
+private val shortTextRegex = Regex("^[^\\d]{1,3}\\d{1,3}[^\\d]{0,2}$")
+
+private const val EPISODE_FALLBACK_COLUMNS = 0
+
+private fun episodeColumnCount(names: List<String>): Int {
+    if (names.isEmpty()) return 4
+    val numericCount = names.count { it.matches(pureNumberRegex) }
+    val shortTextCount = names.count { it.matches(shortTextRegex) }
+    return when {
+        numericCount == names.size -> 5
+        shortTextCount >= names.size * 4 / 5 -> 4
+        else -> EPISODE_FALLBACK_COLUMNS
+    }
+}
+
+@Composable
+private fun EpisodeGrid(
+    episodes: List<Episode>,
+    selectedIndex: Int?,
+    onEpisodeSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val columns = episodeColumnCount(episodes.map { it.name })
+    if (columns == EPISODE_FALLBACK_COLUMNS) {
+        FlowRow(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            episodes.forEachIndexed { index, episode ->
+                EpisodeCard(
+                    episode = episode,
+                    isSelected = index == selectedIndex,
+                    onClick = { onEpisodeSelected(index) },
+                )
+            }
+        }
+        return
+    }
+    val rows = (episodes.size + columns - 1) / columns
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for (row in 0 until rows) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for (col in 0 until columns) {
+                    val index = row * columns + col
+                    if (index < episodes.size) {
+                        EpisodeCard(
+                            episode = episodes[index],
+                            isSelected = index == selectedIndex,
+                            onClick = { onEpisodeSelected(index) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun EpisodeCard(
@@ -1085,8 +1149,10 @@ private fun AllEpisodesSheetContent(
     selectedIndex: Int?,
     onEpisodeSelected: (Int) -> Unit,
 ) {
+    val columns = episodeColumnCount(episodes.map { it.name })
+    val gridCells = if (columns == EPISODE_FALLBACK_COLUMNS) GridCells.Adaptive(minSize = 80.dp) else GridCells.Fixed(columns)
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 80.dp),
+        columns = gridCells,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
