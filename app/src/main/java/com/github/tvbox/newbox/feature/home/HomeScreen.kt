@@ -2,6 +2,7 @@ package com.github.tvbox.newbox.feature.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -70,6 +71,7 @@ fun HomeScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val selectedFilters by viewModel.selectedFilters.collectAsStateWithLifecycle()
     val isLoadingMore by viewModel.isLoadingMore.collectAsStateWithLifecycle()
+    val isReloading by viewModel.isReloading.collectAsStateWithLifecycle()
     var showSourceDialog by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -188,6 +190,7 @@ fun HomeScreen(
                 selectedCategoryId = selectedCategoryId,
                 selectedFilters = selectedFilters,
                 isLoadingMore = isLoadingMore,
+                isReloading = isReloading,
                 onCategoryClick = viewModel::selectCategory,
                 onFilterClick = viewModel::selectFilter,
                 onLoadMore = viewModel::loadMore,
@@ -258,6 +261,7 @@ private fun HomeContent(
     selectedCategoryId: String?,
     selectedFilters: Map<String, String>,
     isLoadingMore: Boolean,
+    isReloading: Boolean,
     onCategoryClick: (String?) -> Unit,
     onFilterClick: (String, String) -> Unit,
     onLoadMore: () -> Unit,
@@ -313,7 +317,14 @@ private fun HomeContent(
             )
         }
 
-        if (homeContent.videos.isEmpty()) {
+        if (isReloading) {
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(32.dp))
+            }
+        } else if (homeContent.videos.isEmpty()) {
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,

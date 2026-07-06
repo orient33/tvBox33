@@ -38,11 +38,13 @@ class HomeViewModel @Inject constructor(
     private val selectedFiltersFlow = MutableStateFlow<Map<String, String>>(emptyMap())
     private val uiStateFlow = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     private val isLoadingMoreFlow = MutableStateFlow(false)
+    private val isReloadingFlow = MutableStateFlow(false)
 
     val selectedCategoryId: StateFlow<String?> = selectedCategoryIdFlow
     val selectedFilters: StateFlow<Map<String, String>> = selectedFiltersFlow
     val uiState: StateFlow<HomeUiState> = uiStateFlow
     val isLoadingMore: StateFlow<Boolean> = isLoadingMoreFlow
+    val isReloading: StateFlow<Boolean> = isReloadingFlow
 
     val sources: StateFlow<List<SourceConfig>> = subscriptionRepository.sources
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -71,7 +73,10 @@ class HomeViewModel @Inject constructor(
             return
         }
         isLoadingMoreFlow.value = false
-        if (uiStateFlow.value !is HomeUiState.Success) {
+        // 保留 Success 状态以维持 Tab 栏可见，用 isReloading 标记卡片区域显示 loading
+        if (uiStateFlow.value is HomeUiState.Success) {
+            isReloadingFlow.value = true
+        } else {
             uiStateFlow.value = HomeUiState.Loading
         }
         try {
@@ -89,6 +94,8 @@ class HomeViewModel @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Home load failed: ${e.message}", e)
             uiStateFlow.value = HomeUiState.Error(e.message ?: "Unknown error")
+        } finally {
+            isReloadingFlow.value = false
         }
     }
 
