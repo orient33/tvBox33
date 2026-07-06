@@ -35,15 +35,31 @@ class SearchViewModel @Inject constructor(
             state.asStateFlow()
         }
 
+    val searchHistory: StateFlow<List<String>> = settingsStore.searchHistory
+        .let { flow ->
+            val state = MutableStateFlow<List<String>>(emptyList())
+            viewModelScope.launch { flow.collect { state.value = it } }
+            state.asStateFlow()
+        }
+
     fun toggleListView() {
         viewModelScope.launch {
             settingsStore.setSearchListView(!listView.value)
         }
     }
 
-    fun search(keyword: String) {
+    fun removeHistory(keyword: String) {
+        viewModelScope.launch { settingsStore.removeSearchHistory(keyword) }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch { settingsStore.clearSearchHistory() }
+    }
+
+    fun search(keyword: String, recordHistory: Boolean = true) {
         if (keyword.isBlank()) return
         viewModelScope.launch {
+            if (recordHistory) settingsStore.addSearchHistory(keyword)
             try {
                 val sources = subscriptionRepository.sources.first()
                 val totalSources = sources.count { it.searchable }

@@ -3,6 +3,8 @@ package com.github.tvbox.newbox.feature.search
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,17 +25,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,6 +73,7 @@ fun SearchScreen(
     var active by rememberSaveable { mutableStateOf(initialQuery.isEmpty()) }
     var selectedSourceKey by rememberSaveable { mutableStateOf<String?>(null) }
     val listView by viewModel.listView.collectAsStateWithLifecycle()
+    val searchHistory by viewModel.searchHistory.collectAsStateWithLifecycle()
 
     if (initialQuery.isNotBlank()) {
         LaunchedEffect(initialQuery) {
@@ -73,7 +82,7 @@ fun SearchScreen(
                 (state is SearchUiState.Searching && state.keyword == initialQuery)
             if (!alreadyHasResults) {
                 selectedSourceKey = null
-                viewModel.search(initialQuery)
+                viewModel.search(initialQuery, recordHistory = false)
             }
         }
     }
@@ -107,19 +116,23 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 2.dp),
         ) {
-            // Search suggestions placeholder
+            if (uiState is SearchUiState.Idle) {
+                SearchHistoryContent(
+                    history = searchHistory,
+                    onKeywordClick = { keyword ->
+                        query = keyword
+                        active = false
+                        selectedSourceKey = null
+                        viewModel.search(keyword)
+                    },
+                    onRemoveKeyword = { viewModel.removeHistory(it) },
+                    onClearAll = { viewModel.clearHistory() },
+                )
+            }
         }
 
         when (val state = uiState) {
-            is SearchUiState.Idle -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text("输入关键词搜索", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
+            is SearchUiState.Idle -> {}
             is SearchUiState.Loading -> LoadingView()
             is SearchUiState.Error -> ErrorView(message = state.message)
             is SearchUiState.Searching -> SearchResultContent(
@@ -233,6 +246,82 @@ private fun SearchResultContent(
                         VodCard(item = vod, onClick = onVodClick)
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SearchHistoryContent(
+    history: List<String>,
+    onKeywordClick: (String) -> Unit,
+    onRemoveKeyword: (String) -> Unit,
+    onClearAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (history.isEmpty()) {
+        Column(
+            modifier = modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text("输入关键词搜索", style = MaterialTheme.typography.bodyLarge)
+        }
+        return
+    }
+
+    var editMode by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "搜索历史",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Row {
+                IconButton(onClick = { editMode = !editMode }) {
+                    Icon(
+                        imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
+                        contentDescription = if (editMode) "完成" else "编辑",
+                    )
+                }
+                if (editMode) {
+                    IconButton(onClick = onClearAll) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = "清空")
+                    }
+                }
+            }
+        }
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            maxLines = 3,
+        ) {
+            history.forEach { keyword ->
+                InputChip(
+                    selected = false,
+                    onClick = {
+                        if (editMode) onRemoveKeyword(keyword) else onKeywordClick(keyword)
+                    },
+                    label = { Text(keyword, maxLines = 1) },
+                    trailingIcon = if (editMode) {
+                        {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "删除",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else null,
+                )
             }
         }
     }

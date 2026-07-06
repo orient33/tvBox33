@@ -35,6 +35,7 @@ class SettingsStore @Inject constructor(
         private val KEY_SEARCH_LIST_VIEW = booleanPreferencesKey("search_list_view")
         private val KEY_FAVORITE_LIST_VIEW = booleanPreferencesKey("favorite_list_view")
         private val KEY_HISTORY_LIST_VIEW = booleanPreferencesKey("history_list_view")
+        private val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -72,6 +73,11 @@ class SettingsStore @Inject constructor(
 
     val historyListView: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_HISTORY_LIST_VIEW] ?: false
+    }
+
+    val searchHistory: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        val raw = prefs[KEY_SEARCH_HISTORY] ?: return@map emptyList()
+        runCatching { json.decodeFromString<List<String>>(raw) }.getOrDefault(emptyList())
     }
 
     suspend fun addSubscriptionUrl(url: String) {
@@ -113,6 +119,35 @@ class SettingsStore @Inject constructor(
     suspend fun setHistoryListView(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[KEY_HISTORY_LIST_VIEW] = enabled
+        }
+    }
+
+    suspend fun addSearchHistory(keyword: String) {
+        if (keyword.isBlank()) return
+        context.dataStore.edit { prefs ->
+            val raw = prefs[KEY_SEARCH_HISTORY]
+            val list = raw?.let {
+                runCatching { json.decodeFromString<List<String>>(it) }.getOrDefault(emptyList())
+            } ?: emptyList()
+            val updated = (list - keyword).toMutableList()
+            updated.add(0, keyword)
+            if (updated.size > 100) updated.subList(100, updated.size).clear()
+            prefs[KEY_SEARCH_HISTORY] = json.encodeToString(kotlinx.serialization.serializer(), updated)
+        }
+    }
+
+    suspend fun removeSearchHistory(keyword: String) {
+        context.dataStore.edit { prefs ->
+            val raw = prefs[KEY_SEARCH_HISTORY] ?: return@edit
+            val list = runCatching { json.decodeFromString<List<String>>(raw) }.getOrDefault(emptyList())
+            val updated = list - keyword
+            prefs[KEY_SEARCH_HISTORY] = json.encodeToString(kotlinx.serialization.serializer(), updated)
+        }
+    }
+
+    suspend fun clearSearchHistory() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(KEY_SEARCH_HISTORY)
         }
     }
 
