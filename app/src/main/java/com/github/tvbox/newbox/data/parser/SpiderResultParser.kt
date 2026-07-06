@@ -93,8 +93,11 @@ class SpiderResultParser @Inject constructor() {
         val flags = vodPlayFrom.split("$$$").filter { it.isNotBlank() }
         val urls = vodPlayUrl.split("$$$")
 
+        // vod_play_from 为空但 vod_play_url 有内容时，用空字符串作为默认 flag（与原工程行为一致）
+        val effectiveFlags = if (flags.isEmpty() && vodPlayUrl.isNotBlank()) listOf("") else flags
+
         val seriesMap = mutableMapOf<String, List<Episode>>()
-        flags.forEachIndexed { index, flag ->
+        effectiveFlags.forEachIndexed { index, flag ->
             val episodes = urls.getOrNull(index)
                 ?.split("#")
                 ?.map { ep ->
@@ -116,7 +119,7 @@ class SpiderResultParser @Inject constructor() {
             actor = vodActor,
             director = vodDirector,
             description = vodContent,
-            seriesFlags = flags,
+            seriesFlags = effectiveFlags,
             seriesMap = seriesMap,
             sourceKey = sourceKey,
         )
