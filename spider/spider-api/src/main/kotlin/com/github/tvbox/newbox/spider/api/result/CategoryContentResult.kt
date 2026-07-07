@@ -10,5 +10,6 @@ data class CategoryContentResult(
     val pagecount: String = "",
     @Serializable(with = FlexibleStringSerializer::class)
     val total: String = "",
+    @Serializable(with = FlexibleVodItemListSerializer::class)
     val list: List<VodItemResult> = emptyList(),
 )

@@ -76,8 +76,9 @@ public class NewBoxJsSpider extends Spider {
 
     @Override
     public void init(Context context, String extend) throws Exception {
-        if (cat) call("init", submit(() -> cfg(extend)).get());
-        else call("init", Json.valid(extend) ? ctx.parse(extend) : extend);
+        String ext = FileUtils.loadModule(extend);
+        if (cat) call("init", submit(() -> cfg(ext)).get());
+        else call("init", Json.valid(ext) ? ctx.parse(ext) : ext);
     }
 
     @Override

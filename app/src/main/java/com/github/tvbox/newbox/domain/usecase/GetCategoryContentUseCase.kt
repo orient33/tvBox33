@@ -45,7 +45,18 @@ class GetCategoryContentUseCase @Inject constructor(
                 playerUrl = params.sourceConfig.playerUrl, playerType = params.sourceConfig.playerType,
             ))
         val resultJson = spider.categoryContent(params.tid, params.pg, params.filter, params.extend)
-        val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.CategoryContentResult>(resultJson)
+        val normalizedJson = resultJson.trim()
+        if (normalizedJson.isBlank()) {
+            throw IllegalStateException("分类列表响应为空: ${params.sourceConfig.name}")
+        }
+        if (!normalizedJson.startsWith("{")) {
+            throw IllegalStateException("分类列表响应不是JSON对象: ${params.sourceConfig.name}, ${normalizedJson.take(120)}")
+        }
+        val result = try {
+            json.decodeFromString<com.github.tvbox.newbox.spider.api.result.CategoryContentResult>(normalizedJson)
+        } catch (e: Exception) {
+            throw IllegalStateException("分类列表JSON解析失败: ${params.sourceConfig.name}, ${e.message}", e)
+        }
         val videos = parser.parseCategoryContent(result, params.sourceConfig.key)
         Result(videos = videos, page = result.page, pageCount = result.pagecount, total = result.total)
     }

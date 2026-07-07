@@ -16,6 +16,7 @@ interface HistoryRepository {
         progress: Long,
         sourceName: String,
     )
+    suspend fun getRecord(vodId: String): VodRecord?
     suspend fun deleteRecord(vodId: String)
 }
 
@@ -49,6 +50,8 @@ class DefaultHistoryRepository @Inject constructor(
             ),
         )
     }
+
+    override suspend fun getRecord(vodId: String): VodRecord? = dao.getById(vodId)
 
     override suspend fun deleteRecord(vodId: String) {
         dao.deleteById(vodId)

@@ -43,6 +43,9 @@ class DetailPlayerViewModel @Inject constructor(
     private val _selectedEpisodeIndex = MutableStateFlow<Int?>(null)
     val selectedEpisodeIndex: StateFlow<Int?> = _selectedEpisodeIndex.asStateFlow()
 
+    private val _resumePosition = MutableStateFlow(0L)
+    val resumePosition: StateFlow<Long> = _resumePosition.asStateFlow()
+
     private val _isFullscreen = MutableStateFlow(false)
     val isFullscreen: StateFlow<Boolean> = _isFullscreen.asStateFlow()
 
@@ -60,10 +63,11 @@ class DetailPlayerViewModel @Inject constructor(
             _detailState.value = DetailUiState.Loading
             _playerState.value = PlayerUiState.Idle
             _selectedEpisodeIndex.value = null
+            _resumePosition.value = 0L
             try {
                 val detail = getDetailUseCase(GetDetailUseCase.Params(vodId, sourceKey))
                 _detailState.value = DetailUiState.Success(detail)
-                _selectedFlagIndex.value = 0
+                selectInitialEpisode(detail)
             } catch (e: Exception) {
                 Log.e(TAG, "loadDetail FAIL sourceKey=$sourceKey, vodId=$vodId, ${e.javaClass.simpleName}: ${e.message}", e)
                 _detailState.value = DetailUiState.Error(e.message ?: "Failed to load detail")
@@ -96,16 +100,22 @@ class DetailPlayerViewModel @Inject constructor(
     fun selectFlag(index: Int) {
         _selectedFlagIndex.value = index
         _selectedEpisodeIndex.value = null
+        _resumePosition.value = 0L
         _playerState.value = PlayerUiState.Idle
     }
 
     fun selectEpisode(episodeIndex: Int) {
+        selectEpisode(episodeIndex, resumePosition = 0L)
+    }
+
+    private fun selectEpisode(episodeIndex: Int, resumePosition: Long) {
         val detail = (_detailState.value as? DetailUiState.Success)?.detail ?: return
         val flag = currentFlag(detail)
         val episodes = detail.seriesMap[flag] ?: return
         if (episodeIndex !in episodes.indices) return
 
         _selectedEpisodeIndex.value = episodeIndex
+        _resumePosition.value = resumePosition.coerceAtLeast(0L)
         val episode = episodes[episodeIndex]
 
         viewModelScope.launch {
@@ -150,12 +160,34 @@ class DetailPlayerViewModel @Inject constructor(
     }
 
     private fun currentFlag(detail: VodDetail): String {
-        val flags = detail.seriesFlags
+        val flags = detail.seriesFlags.ifEmpty { detail.seriesMap.keys.toList() }
         return if (flags.isNotEmpty() && _selectedFlagIndex.value in flags.indices) {
             flags[_selectedFlagIndex.value]
         } else {
             detail.seriesMap.keys.firstOrNull() ?: ""
         }
+    }
+
+    private suspend fun selectInitialEpisode(detail: VodDetail) {
+        val record = historyRepository.getRecord(detail.id)
+        val flags = detail.seriesFlags.ifEmpty { detail.seriesMap.keys.toList() }
+        val flagIndex = record?.lastPlayFlag
+            ?.takeIf { it.isNotBlank() }
+            ?.let { flags.indexOf(it) }
+            ?.takeIf { it >= 0 }
+            ?: 0
+
+        _selectedFlagIndex.value = flagIndex
+
+        val flag = flags.getOrNull(flagIndex) ?: detail.seriesMap.keys.firstOrNull() ?: return
+        val episodeCount = detail.seriesMap[flag]?.size ?: return
+        if (episodeCount <= 0) return
+
+        val episodeIndex = record?.lastPlayIndex
+            ?.takeIf { it in 0 until episodeCount }
+            ?: 0
+        val progress = record?.lastPlayProgress ?: 0L
+        selectEpisode(episodeIndex, progress)
     }
 }
 

@@ -77,13 +77,23 @@ class GetPlayerUrlUseCase @Inject constructor(
             throw IllegalStateException("解析播放地址失败: ${e.message}", e)
         }
         val playerResult = parser.parsePlayerContent(result)
+        Log.d(
+            TAG,
+            "playerContent RESULT source=${source.key}/${source.name}, parse=${result.parse}, " +
+                "playUrl=${result.playUrl}, url=${playerResult.url}, needSniff=${playerResult.needSniff}",
+        )
 
         if (playerResult.needSniff) {
-            Log.d(TAG, "parse==1, sniffing video URL from ${playerResult.url}")
+            val sniffUrl = if (result.url.isNotBlank()) {
+                result.playUrl + playerResult.url
+            } else {
+                playerResult.url
+            }
+            Log.d(TAG, "parse==1, sniffing video URL from $sniffUrl")
             val sniffer = VideoSniffer(appContext)
             val sniffedUrl = withContext(Dispatchers.Main) {
                 withTimeoutOrNull(SNIFF_TIMEOUT_MS) {
-                    sniffer.sniff(playerResult.url, playerResult.headers)
+                    sniffer.sniff(sniffUrl, playerResult.headers)
                 }
             }
             if (sniffedUrl != null) {

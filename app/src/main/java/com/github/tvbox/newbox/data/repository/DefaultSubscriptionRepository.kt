@@ -148,8 +148,8 @@ class DefaultSubscriptionRepository @Inject constructor(
         Log.d(TAG, "loadSubscription: _sources updated, total=${_sources.value.size} configs")
         val currentKey = settingsStore.currentSourceKey.first()
         Log.d(TAG, "loadSubscription: currentSourceKey=$currentKey")
-        if (configs.isNotEmpty() && currentKey == null) {
-            val first = configs.firstOrNull { it.type == SourceType.HTTP_API } ?: configs.first()
+        if (configs.isNotEmpty() && shouldUseFirstSource(configs, currentKey)) {
+            val first = configs.first()
             settingsStore.setCurrentSource(first.key)
             Log.d(TAG, "loadSubscription: auto-selected source: ${first.key} (${first.type})")
         }
@@ -224,8 +224,8 @@ class DefaultSubscriptionRepository @Inject constructor(
 
     override suspend fun selectSubscription(url: String) {
         val configs = _sourcesByUrl[url] ?: return
-        val best = configs.firstOrNull { it.type == SourceType.HTTP_API } ?: configs.firstOrNull() ?: return
-        settingsStore.setCurrentSource(best.key)
+        val first = configs.firstOrNull() ?: return
+        settingsStore.setCurrentSource(first.key)
     }
 
     override suspend fun loadWarehouse(parentUrl: String, warehouseUrl: String) {
@@ -267,10 +267,16 @@ class DefaultSubscriptionRepository @Inject constructor(
         rebuildSources()
 
         val currentKey = settingsStore.currentSourceKey.first()
-        if (configs.isNotEmpty() && currentKey == null) {
-            val first = configs.firstOrNull { it.type == SourceType.HTTP_API } ?: configs.first()
-            settingsStore.setCurrentSource(first.key)
+        if (configs.isNotEmpty() && shouldUseFirstSource(configs, currentKey)) {
+            settingsStore.setCurrentSource(configs.first().key)
         }
+    }
+
+    private fun shouldUseFirstSource(configs: List<SourceConfig>, currentKey: String?): Boolean {
+        if (currentKey == null) return true
+        val current = configs.firstOrNull { it.key == currentKey } ?: return true
+        val first = configs.firstOrNull() ?: return false
+        return current.type == SourceType.HTTP_API && first.key != current.key
     }
 
     private fun rebuildSources() {
