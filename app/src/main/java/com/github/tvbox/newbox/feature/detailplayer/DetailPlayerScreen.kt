@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -34,6 +35,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
@@ -84,6 +86,8 @@ fun DetailPlayerScreen(
     var currentPosition by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
     var bufferedPercentage by remember { mutableIntStateOf(0) }
+    var playbackUrl by remember { mutableStateOf("") }
+    var playbackMediaInfo by remember { mutableStateOf(PlaybackMediaInfo()) }
 
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
@@ -100,6 +104,7 @@ fun DetailPlayerScreen(
             currentPosition = exoPlayer.currentPosition
             bufferedPercentage = exoPlayer.bufferedPercentage
             if (duration == 0L) duration = exoPlayer.duration.coerceAtLeast(0L)
+            playbackMediaInfo = buildPlaybackMediaInfo(playbackUrl, exoPlayer.videoFormat)
             delay(500)
         }
     }
@@ -114,6 +119,19 @@ fun DetailPlayerScreen(
 
     val audioManager = remember(context) { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val activity = context.findActivity()
+
+    DisposableEffect(activity, isPlaying) {
+        val window = activity?.window
+        if (isPlaying) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     val updateVolume: (Float) -> Unit = { delta ->
         val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
         val currentProgress = volumeGestureProgress
@@ -165,6 +183,8 @@ fun DetailPlayerScreen(
     LaunchedEffect(playerState) {
         if (playerState is PlayerUiState.Ready) {
             val result = (playerState as PlayerUiState.Ready).playerResult
+            playbackUrl = result.url
+            playbackMediaInfo = buildPlaybackMediaInfo(result.url, exoPlayer.videoFormat)
             dataSourceFactory.setDefaultRequestProperties(result.headers)
             val mediaItem = MediaItem.Builder()
                 .setUri(result.url)
@@ -235,6 +255,7 @@ fun DetailPlayerScreen(
     var showSynopsisSheet by rememberSaveable { mutableStateOf(false) }
     var showAllEpisodesSheet by rememberSaveable { mutableStateOf(false) }
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
+    var showPlaybackInfoSheet by rememberSaveable { mutableStateOf(false) }
 
     val detail = (detailState as? DetailUiState.Success)?.detail
     val flags = detail?.seriesFlags ?: emptyList()
@@ -277,6 +298,7 @@ fun DetailPlayerScreen(
             },
             onBackClick = { viewModel.toggleFullscreen() },
             onSettingsClick = { showSettingsSheet = true },
+            onPlaybackInfoClick = { showPlaybackInfoSheet = true },
             onLockClick = {
                 isLocked = !isLocked
                 if (isLocked) {
@@ -344,6 +366,15 @@ fun DetailPlayerScreen(
                 )
             }
         }
+        if (showPlaybackInfoSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showPlaybackInfoSheet = false },
+                sheetState = sheetState,
+            ) {
+                PlaybackInfoSheetContent(info = playbackMediaInfo)
+            }
+        }
         return
     }
 
@@ -367,6 +398,7 @@ fun DetailPlayerScreen(
             onBackClick = onBackClick,
             onFullscreenClick = { viewModel.toggleFullscreen() },
             onSettingsClick = { showSettingsSheet = true },
+            onPlaybackInfoClick = { showPlaybackInfoSheet = true },
             onToggleControls = {
                 if (isAdjustingGesture) {
                     isAdjustingGesture = false
@@ -473,6 +505,16 @@ fun DetailPlayerScreen(
             )
         }
     }
+
+    if (showPlaybackInfoSheet) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showPlaybackInfoSheet = false },
+            sheetState = sheetState,
+        ) {
+            PlaybackInfoSheetContent(info = playbackMediaInfo)
+        }
+    }
 }
 
 fun formatTime(ms: Long): String {
@@ -484,6 +526,16 @@ fun formatTime(ms: Long): String {
     return if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
     else String.format("%02d:%02d", minutes, seconds)
 }
+
+private fun buildPlaybackMediaInfo(url: String, format: Format?): PlaybackMediaInfo = PlaybackMediaInfo(
+    url = url,
+    width = format?.width?.takeIf { it > 0 } ?: 0,
+    height = format?.height?.takeIf { it > 0 } ?: 0,
+    sampleMimeType = format?.sampleMimeType,
+    codecs = format?.codecs,
+    bitrate = format?.bitrate?.takeIf { it > 0 } ?: 0,
+    frameRate = format?.frameRate?.takeIf { it > 0f } ?: 0f,
+)
 
 private fun Context.findActivity(): Activity? {
     var ctx = this

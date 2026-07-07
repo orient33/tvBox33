@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pause
@@ -74,6 +76,16 @@ import kotlin.math.roundToInt
 private const val PLAYER_GESTURE_SLOP_PX = 12f
 private val PLAYER_EDGE_PADDING = 16.dp
 
+data class PlaybackMediaInfo(
+    val url: String = "",
+    val width: Int = 0,
+    val height: Int = 0,
+    val sampleMimeType: String? = null,
+    val codecs: String? = null,
+    val bitrate: Int = 0,
+    val frameRate: Float = 0f,
+)
+
 @Composable
 fun PlayerSection(
     playerState: PlayerUiState,
@@ -93,6 +105,7 @@ fun PlayerSection(
     onBackClick: () -> Unit,
     onFullscreenClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onPlaybackInfoClick: () -> Unit,
     onToggleControls: () -> Unit,
     onLockClick: () -> Unit,
     onTogglePlay: () -> Unit,
@@ -167,6 +180,7 @@ fun PlayerSection(
                 onToggleControls = onToggleControls,
                 onBackClick = onBackClick,
                 onSettingsClick = onSettingsClick,
+                onPlaybackInfoClick = onPlaybackInfoClick,
                 onLockClick = onLockClick,
                 onTogglePlay = onTogglePlay,
                 onSeekTo = onSeekTo,
@@ -202,6 +216,7 @@ fun FullscreenPlayerSection(
     onToggleControls: () -> Unit,
     onBackClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onPlaybackInfoClick: () -> Unit,
     onLockClick: () -> Unit,
     onTogglePlay: () -> Unit,
     onSeekTo: (Long) -> Unit,
@@ -253,6 +268,7 @@ fun FullscreenPlayerSection(
             onToggleControls = onToggleControls,
             onBackClick = onBackClick,
             onSettingsClick = onSettingsClick,
+            onPlaybackInfoClick = onPlaybackInfoClick,
             onLockClick = onLockClick,
             onTogglePlay = onTogglePlay,
             onSeekTo = onSeekTo,
@@ -428,6 +444,7 @@ fun PlayerControlsOverlay(
     onToggleControls: () -> Unit,
     onBackClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onPlaybackInfoClick: () -> Unit,
     onLockClick: () -> Unit,
     onTogglePlay: () -> Unit,
     onSeekTo: (Long) -> Unit,
@@ -521,6 +538,13 @@ fun PlayerControlsOverlay(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
+                    IconButton(onClick = onPlaybackInfoClick) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = "播放信息",
+                            tint = Color.White,
+                        )
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             Icons.Default.Settings,
@@ -578,7 +602,65 @@ fun PlayerControlsOverlay(
             )
         }
     }
+
 }
+
+@Composable
+fun PlaybackInfoSheetContent(
+    info: PlaybackMediaInfo,
+) {
+    SelectionContainer {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "播放信息",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            PlaybackInfoRow("播放地址", info.url.ifBlank { "未知" })
+            PlaybackInfoRow("分辨率", info.resolutionText())
+            PlaybackInfoRow("编码", info.codecText())
+            PlaybackInfoRow("码率", info.bitrateText())
+            PlaybackInfoRow("帧率", info.frameRateText())
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun PlaybackInfoRow(label: String, value: String) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+private fun PlaybackMediaInfo.resolutionText(): String =
+    if (width > 0 && height > 0) "${width}*${height}" else "未知"
+
+private fun PlaybackMediaInfo.codecText(): String = when {
+    !codecs.isNullOrBlank() && !sampleMimeType.isNullOrBlank() -> "$codecs ($sampleMimeType)"
+    !codecs.isNullOrBlank() -> codecs
+    !sampleMimeType.isNullOrBlank() -> sampleMimeType
+    else -> "未知"
+}
+
+private fun PlaybackMediaInfo.bitrateText(): String =
+    if (bitrate > 0) "${bitrate / 1000} kbps" else "未知"
+
+private fun PlaybackMediaInfo.frameRateText(): String =
+    if (frameRate > 0f) String.format("%.2f fps", frameRate) else "未知"
 
 // ---------------------------------------------------------------------------
 // Bottom bar (play/pause, [prev/next/select ep in fullscreen], seekbar, time)
