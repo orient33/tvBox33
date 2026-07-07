@@ -24,11 +24,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -984,23 +982,30 @@ private fun DetailContent(
 // Sheet contents
 // ---------------------------------------------------------------------------
 
-// 纯数字（含正整数）判定：1 2 3 ... 12 等
-private val pureNumberRegex = Regex("^\\d+$")
+// 纯数字：1 2 3 ... 1234（限 4 位以内，避免日期串误判）
+private val pureNumberRegex = Regex("^\\d{1,4}$")
 
-// 第X集 / 第XX集 等：含非数字字符但较短
-private val shortTextRegex = Regex("^[^\\d]{1,3}\\d{1,3}[^\\d]{0,2}$")
+// 集数标签：第1集 / 第01话 / 第1期 / 第1回 / EP01 / E01 / 1期 / 1集
+private val episodeLabelRegex = Regex(
+    "^(第\\s*\\d{1,3}\\s*[集话話期回]|EP?\\s*\\d{1,3}|\\d{1,3}\\s*[集话話期回])$",
+    RegexOption.IGNORE_CASE,
+)
 
-private const val EPISODE_FALLBACK_COLUMNS = 0
+private enum class EpisodeLayout(val columns: Int) {
+    GRID_NUMERIC(5),
+    GRID_LABELED(4),
+    LIST(1),
+}
 
-private fun episodeColumnCount(names: List<String>): Int {
-    if (names.isEmpty()) return 4
+private fun detectEpisodeLayout(names: List<String>): EpisodeLayout {
+    if (names.isEmpty()) return EpisodeLayout.GRID_NUMERIC
+    // 90% 阈值，容忍少量 outlier（如末尾"预告"）
+    val threshold = (names.size * 9 + 9) / 10
     val numericCount = names.count { it.matches(pureNumberRegex) }
-    val shortTextCount = names.count { it.matches(shortTextRegex) }
-    return when {
-        numericCount == names.size -> 5
-        shortTextCount >= names.size * 4 / 5 -> 4
-        else -> EPISODE_FALLBACK_COLUMNS
-    }
+    if (numericCount >= threshold) return EpisodeLayout.GRID_NUMERIC
+    val labeledCount = names.count { it.matches(episodeLabelRegex) }
+    if (labeledCount >= threshold) return EpisodeLayout.GRID_LABELED
+    return EpisodeLayout.LIST
 }
 
 @Composable
@@ -1010,11 +1015,10 @@ private fun EpisodeGrid(
     onEpisodeSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val columns = episodeColumnCount(episodes.map { it.name })
-    if (columns == EPISODE_FALLBACK_COLUMNS) {
-        FlowRow(
+    val layout = detectEpisodeLayout(episodes.map { it.name })
+    if (layout == EpisodeLayout.LIST) {
+        Column(
             modifier = modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             episodes.forEachIndexed { index, episode ->
@@ -1022,32 +1026,34 @@ private fun EpisodeGrid(
                     episode = episode,
                     isSelected = index == selectedIndex,
                     onClick = { onEpisodeSelected(index) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
-        return
-    }
-    val rows = (episodes.size + columns - 1) / columns
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        for (row in 0 until rows) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                for (col in 0 until columns) {
-                    val index = row * columns + col
-                    if (index < episodes.size) {
-                        EpisodeCard(
-                            episode = episodes[index],
-                            isSelected = index == selectedIndex,
-                            onClick = { onEpisodeSelected(index) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
+    } else {
+        val columns = layout.columns
+        val rows = (episodes.size + columns - 1) / columns
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            for (row in 0 until rows) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    for (col in 0 until columns) {
+                        val index = row * columns + col
+                        if (index < episodes.size) {
+                            EpisodeCard(
+                                episode = episodes[index],
+                                isSelected = index == selectedIndex,
+                                onClick = { onEpisodeSelected(index) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -1067,14 +1073,19 @@ private fun EpisodeCard(
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier.clickable { onClick() },
     ) {
-        Text(
-            text = episode.name,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = episode.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
     }
 }
 
@@ -1149,8 +1160,8 @@ private fun AllEpisodesSheetContent(
     selectedIndex: Int?,
     onEpisodeSelected: (Int) -> Unit,
 ) {
-    val columns = episodeColumnCount(episodes.map { it.name })
-    val gridCells = if (columns == EPISODE_FALLBACK_COLUMNS) GridCells.Adaptive(minSize = 80.dp) else GridCells.Fixed(columns)
+    val layout = detectEpisodeLayout(episodes.map { it.name })
+    val gridCells = GridCells.Fixed(layout.columns)
     LazyVerticalGrid(
         columns = gridCells,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
