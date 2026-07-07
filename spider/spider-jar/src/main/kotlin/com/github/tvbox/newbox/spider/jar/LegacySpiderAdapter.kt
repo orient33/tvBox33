@@ -54,7 +54,6 @@ class LegacySpiderAdapter(
             val result = runBlockingCall { legacySpider.detailContent(ids) }
             if (result.isBlank()) {
                 Log.w(TAG, "detailContent returned blank for ids=$ids")
-                throw IllegalStateException("详情数据为空，该源可能不可用")
             }
             result
         } catch (e: Exception) {

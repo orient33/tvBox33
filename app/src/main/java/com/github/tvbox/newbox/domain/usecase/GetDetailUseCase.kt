@@ -5,6 +5,7 @@ import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.BaseUseCase
+import com.github.tvbox.newbox.domain.Episode
 import com.github.tvbox.newbox.domain.VodDetail
 import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
@@ -58,6 +59,23 @@ class GetDetailUseCase @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "detailContent failed source=${source.key}/${source.name}, vodId=${params.vodId}", e)
             throw e
+        }
+        if (resultJson.isBlank()) {
+            Log.w(TAG, "detailContent blank, fallback to minimal detail source=${source.key}/${source.name}, vodId=${params.vodId}")
+            return@withContext VodDetail(
+                id = params.vodId,
+                name = "",
+                pic = "",
+                type = "",
+                year = "",
+                area = "",
+                actor = "",
+                director = "",
+                description = "",
+                seriesFlags = listOf(""),
+                seriesMap = mapOf("" to listOf(Episode(name = "播放", url = params.vodId))),
+                sourceKey = params.sourceKey,
+            )
         }
         try {
             val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.DetailContentResult>(resultJson)
