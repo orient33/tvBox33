@@ -42,10 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.tvbox.newbox.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +72,10 @@ fun SettingsScreen(
     var editTitleValue by remember { mutableStateOf("") }
     var showWarehouseDialogForUrl by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val addRoutesSuccessMessage = stringResource(
+        R.string.settings_add_routes_success,
+        multiRouteResult?.routes?.size ?: 0,
+    )
 
     LaunchedEffect(error) {
         error?.let {
@@ -80,7 +86,7 @@ fun SettingsScreen(
 
     LaunchedEffect(multiRouteResult) {
         multiRouteResult?.let { result ->
-            snackbarHostState.showSnackbar("已添加 ${result.routes.size} 条线路")
+            snackbarHostState.showSnackbar(addRoutesSuccessMessage)
             viewModel.clearMultiRouteResult()
         }
     }
@@ -89,17 +95,17 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("订阅管理") },
+                title = { Text(stringResource(R.string.settings_subscription_management)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "添加订阅")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.settings_add_subscription))
             }
         },
         modifier = modifier,
@@ -113,12 +119,12 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    "暂无订阅",
+                    stringResource(R.string.settings_no_subscriptions),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "点击 + 添加订阅地址",
+                    stringResource(R.string.settings_add_subscription_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -130,6 +136,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(padding),
             ) {
                 itemsIndexed(subUrls) { index, url ->
+                    val defaultTitle = stringResource(R.string.settings_default_source_title, index + 1)
                     val warehouses = warehousesMap[url]
                     val isMultiWarehouse = warehouses != null && warehouses.isNotEmpty()
                     val currentWhIndex = currentWarehouseMap[url] ?: -1
@@ -147,7 +154,7 @@ fun SettingsScreen(
                         onSelect = { viewModel.selectSubscription(url) },
                         onWarehouseClick = { showWarehouseDialogForUrl = url },
                         onEditTitle = {
-                            editTitleValue = titles[url] ?: "源${index + 1}"
+                            editTitleValue = titles[url] ?: defaultTitle
                             editingTitleForUrl = url
                         },
                         onDelete = { viewModel.removeSubscription(url) },
@@ -160,12 +167,12 @@ fun SettingsScreen(
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("添加订阅") },
+            title = { Text(stringResource(R.string.settings_add_subscription)) },
             text = {
                 OutlinedTextField(
                     value = subUrl,
                     onValueChange = { subUrl = it },
-                    label = { Text("订阅地址") },
+                    label = { Text(stringResource(R.string.settings_subscription_url)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -180,10 +187,10 @@ fun SettingsScreen(
                             showAddDialog = false
                         }
                     },
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) { Text("取消") }
+                TextButton(onClick = { showAddDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -195,7 +202,7 @@ fun SettingsScreen(
                 viewModel.clearWarehouseChoices()
                 selectedWarehouse = -1
             },
-            title = { Text("选择仓库") },
+            title = { Text(stringResource(R.string.settings_select_repository)) },
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -235,7 +242,7 @@ fun SettingsScreen(
                         viewModel.clearWarehouseChoices()
                         selectedWarehouse = -1
                     },
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
                 TextButton(
@@ -243,7 +250,7 @@ fun SettingsScreen(
                         viewModel.clearWarehouseChoices()
                         selectedWarehouse = -1
                     },
-                ) { Text("取消") }
+                ) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -254,7 +261,7 @@ fun SettingsScreen(
         var selectedIdx by remember { mutableStateOf(currentIndex) }
         AlertDialog(
             onDismissRequest = { showWarehouseDialogForUrl = null },
-            title = { Text("选择仓/源") },
+            title = { Text(stringResource(R.string.settings_select_warehouse_source)) },
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -299,10 +306,10 @@ fun SettingsScreen(
                         }
                         showWarehouseDialogForUrl = null
                     },
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showWarehouseDialogForUrl = null }) { Text("取消") }
+                TextButton(onClick = { showWarehouseDialogForUrl = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -310,12 +317,12 @@ fun SettingsScreen(
     editingTitleForUrl?.let { url ->
         AlertDialog(
             onDismissRequest = { editingTitleForUrl = null },
-            title = { Text("编辑标题") },
+            title = { Text(stringResource(R.string.settings_edit_title)) },
             text = {
                 OutlinedTextField(
                     value = editTitleValue,
                     onValueChange = { editTitleValue = it },
-                    label = { Text("标题") },
+                    label = { Text(stringResource(R.string.settings_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -326,10 +333,10 @@ fun SettingsScreen(
                         viewModel.setSubscriptionTitle(url, editTitleValue)
                         editingTitleForUrl = null
                     },
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { editingTitleForUrl = null }) { Text("取消") }
+                TextButton(onClick = { editingTitleForUrl = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -351,7 +358,7 @@ private fun SubscriptionUrlItem(
     onDelete: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    val displayTitle = title ?: "源${index + 1}"
+    val displayTitle = title ?: stringResource(R.string.settings_default_source_title, index + 1)
 
     Row(
         modifier = Modifier
@@ -379,7 +386,8 @@ private fun SubscriptionUrlItem(
                 .padding(start = 4.dp),
         ) {
             Text(
-                text = if (isMultiWarehouse) displayTitle else "$displayTitle · $sourceCount 个网站",
+                text = if (isMultiWarehouse) displayTitle
+                else stringResource(R.string.settings_source_count_format, displayTitle, sourceCount),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
@@ -397,7 +405,11 @@ private fun SubscriptionUrlItem(
                     AssistChip(
                         onClick = onWarehouseClick,
                         label = {
-                            val label = if (currentWarehouseName != null) "多仓 · $currentWarehouseName" else "多仓"
+                            val label = if (currentWarehouseName != null) {
+                                stringResource(R.string.settings_multi_warehouse_name, currentWarehouseName)
+                            } else {
+                                stringResource(R.string.settings_multi_warehouse)
+                            }
                             Text(label, style = MaterialTheme.typography.labelSmall)
                         },
                     )
@@ -410,14 +422,14 @@ private fun SubscriptionUrlItem(
             onDismissRequest = { showMenu = false },
         ) {
             DropdownMenuItem(
-                text = { Text("编辑标题") },
+                text = { Text(stringResource(R.string.settings_edit_title)) },
                 onClick = {
                     showMenu = false
                     onEditTitle()
                 },
             )
             DropdownMenuItem(
-                text = { Text("删除") },
+                text = { Text(stringResource(R.string.common_delete)) },
                 onClick = {
                     showMenu = false
                     onDelete()

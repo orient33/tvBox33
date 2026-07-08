@@ -46,10 +46,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.domain.FilterGroup
 import com.github.tvbox.newbox.domain.SourceConfig
 import com.github.tvbox.newbox.domain.VodItem
@@ -99,7 +101,7 @@ fun HomeScreen(
                     if (sources.size > 1) {
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "切换源",
+                            contentDescription = stringResource(R.string.home_switch_source),
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
@@ -108,10 +110,10 @@ fun HomeScreen(
             },
             actions = {
                 IconButton(onClick = onSearchClick) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.home_search))
                 }
                 IconButton(onClick = onMineClick) {
-                    Icon(Icons.Default.Person, contentDescription = "我的")
+                    Icon(Icons.Default.Person, contentDescription = stringResource(R.string.home_mine))
                 }
             },
         )
@@ -136,11 +138,11 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "暂无视频源",
+                            text = stringResource(R.string.home_no_sources),
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            text = "点击右上角头像添加订阅",
+                            text = stringResource(R.string.home_add_subscription_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
@@ -160,7 +162,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "加载失败",
+                            text = stringResource(R.string.common_load_failed),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -175,15 +177,15 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             TextButton(onClick = { viewModel.retry() }) {
-                                Text("重试")
+                                Text(stringResource(R.string.common_retry))
                             }
                             if (sources.size > 1) {
                                 TextButton(onClick = { showSourceDialog = true }) {
-                                    Text("切换源")
+                                    Text(stringResource(R.string.home_switch_source))
                                 }
                             }
                             TextButton(onClick = onMineClick) {
-                                Text("我的")
+                                Text(stringResource(R.string.home_mine))
                             }
                         }
                     }
@@ -229,7 +231,7 @@ private fun SourceSwitchDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("切换源") },
+        title = { Text(stringResource(R.string.home_switch_source)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -238,6 +240,7 @@ private fun SourceSwitchDialog(
                     val source = sources[index]
                     val isSelected = source.key == currentKey
                     val isBlocked = source.key in blockedKeys
+                    val blockedSuffix = stringResource(R.string.home_source_blocked_suffix)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -250,7 +253,7 @@ private fun SourceSwitchDialog(
                                 text = buildString {
                                     if (isSelected) append("● ")
                                     append("${index + 1}. ${source.name}")
-                                    if (isBlocked) append("（已屏蔽）")
+                                    if (isBlocked) append(blockedSuffix)
                                 },
                                 style = if (isSelected) MaterialTheme.typography.bodyLarge
                                 else MaterialTheme.typography.bodyMedium,
@@ -264,14 +267,17 @@ private fun SourceSwitchDialog(
                         TextButton(
                             onClick = { onBlockedChange(source.key, !isBlocked) },
                         ) {
-                            Text(if (isBlocked) "取消屏蔽" else "屏蔽")
+                            Text(
+                                if (isBlocked) stringResource(R.string.home_unblock_source)
+                                else stringResource(R.string.home_block_source),
+                            )
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         },
     )
 }
@@ -317,7 +323,7 @@ private fun HomeContent(
                     FilterChip(
                         selected = selectedCategoryId == null,
                         onClick = { onCategoryClick(null) },
-                        label = { Text("主页") },
+                        label = { Text(stringResource(R.string.home_main_page)) },
                     )
                 }
                 items(homeContent.categories) { category ->
@@ -359,11 +365,11 @@ private fun HomeContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "当前源暂无内容",
+                    text = stringResource(R.string.home_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "请尝试切换其他源或分类",
+                    text = stringResource(R.string.home_empty_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),

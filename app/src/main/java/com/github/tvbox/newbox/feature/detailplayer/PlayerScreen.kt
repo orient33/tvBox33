@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
+import com.github.tvbox.newbox.R
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -284,9 +286,10 @@ fun FullscreenPlayerSection(
     }
 }
 
+@Composable
 fun resolvePlayerLoadingMessage(playerState: PlayerUiState, playbackState: Int): String? = when {
-    playerState is PlayerUiState.Loading -> "加载中…"
-    playerState is PlayerUiState.Ready && playbackState == Player.STATE_BUFFERING -> "缓冲中…"
+    playerState is PlayerUiState.Loading -> stringResource(R.string.common_loading)
+    playerState is PlayerUiState.Ready && playbackState == Player.STATE_BUFFERING -> stringResource(R.string.common_buffering)
     else -> null
 }
 
@@ -496,7 +499,7 @@ fun PlayerControlsOverlay(
                 IconButton(onClick = onLockClick) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "解锁",
+                        contentDescription = stringResource(R.string.player_unlock),
                         tint = Color.White,
                     )
                 }
@@ -526,7 +529,7 @@ fun PlayerControlsOverlay(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(R.string.common_back),
                             tint = Color.White,
                         )
                     }
@@ -541,14 +544,14 @@ fun PlayerControlsOverlay(
                     IconButton(onClick = onPlaybackInfoClick) {
                         Icon(
                             Icons.Default.Info,
-                            contentDescription = "播放信息",
+                            contentDescription = stringResource(R.string.player_info),
                             tint = Color.White,
                         )
                     }
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             Icons.Default.Settings,
-                            contentDescription = "播放设置",
+                            contentDescription = stringResource(R.string.player_settings),
                             tint = Color.White,
                         )
                     }
@@ -589,7 +592,7 @@ fun PlayerControlsOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Default.LockOpen,
-                    contentDescription = "锁屏",
+                    contentDescription = stringResource(R.string.player_lock),
                     tint = Color.White,
                 )
             }
@@ -615,16 +618,17 @@ fun PlaybackInfoSheetContent(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "播放信息",
+                text = stringResource(R.string.player_info),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
-            PlaybackInfoRow("播放地址", info.url.ifBlank { "未知" })
-            PlaybackInfoRow("分辨率", info.resolutionText())
-            PlaybackInfoRow("编码", info.codecText())
-            PlaybackInfoRow("码率", info.bitrateText())
-            PlaybackInfoRow("帧率", info.frameRateText())
+            val unknown = stringResource(R.string.common_unknown)
+            PlaybackInfoRow(stringResource(R.string.player_url), info.url.ifBlank { unknown })
+            PlaybackInfoRow(stringResource(R.string.player_resolution), info.resolutionText(unknown))
+            PlaybackInfoRow(stringResource(R.string.player_codec), info.codecText(unknown))
+            PlaybackInfoRow(stringResource(R.string.player_bitrate), info.bitrateText(unknown))
+            PlaybackInfoRow(stringResource(R.string.player_frame_rate), info.frameRateText(unknown))
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -646,21 +650,21 @@ private fun PlaybackInfoRow(label: String, value: String) {
     }
 }
 
-private fun PlaybackMediaInfo.resolutionText(): String =
-    if (width > 0 && height > 0) "${width}*${height}" else "未知"
+private fun PlaybackMediaInfo.resolutionText(unknown: String): String =
+    if (width > 0 && height > 0) "${width}*${height}" else unknown
 
-private fun PlaybackMediaInfo.codecText(): String = when {
+private fun PlaybackMediaInfo.codecText(unknown: String): String = when {
     !codecs.isNullOrBlank() && !sampleMimeType.isNullOrBlank() -> "$codecs ($sampleMimeType)"
     !codecs.isNullOrBlank() -> codecs
     !sampleMimeType.isNullOrBlank() -> sampleMimeType
-    else -> "未知"
+    else -> unknown
 }
 
-private fun PlaybackMediaInfo.bitrateText(): String =
-    if (bitrate > 0) "${bitrate / 1000} kbps" else "未知"
+private fun PlaybackMediaInfo.bitrateText(unknown: String): String =
+    if (bitrate > 0) "${bitrate / 1000} kbps" else unknown
 
-private fun PlaybackMediaInfo.frameRateText(): String =
-    if (frameRate > 0f) String.format("%.2f fps", frameRate) else "未知"
+private fun PlaybackMediaInfo.frameRateText(unknown: String): String =
+    if (frameRate > 0f) String.format("%.2f fps", frameRate) else unknown
 
 // ---------------------------------------------------------------------------
 // Bottom bar (play/pause, [prev/next/select ep in fullscreen], seekbar, time)
@@ -701,7 +705,8 @@ private fun PlayerBottomBar(
         IconButton(onClick = onTogglePlay) {
             Icon(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isPlaying) "暂停" else "播放",
+                contentDescription = if (isPlaying) stringResource(R.string.player_pause)
+                else stringResource(R.string.player_play),
                 tint = Color.White,
             )
         }
@@ -710,7 +715,7 @@ private fun PlayerBottomBar(
             IconButton(onClick = onPreviousEpisode, enabled = hasPrevious) {
                 Icon(
                     Icons.Default.SkipPrevious,
-                    contentDescription = "上一集",
+                    contentDescription = stringResource(R.string.player_previous_episode),
                     tint = if (hasPrevious) Color.White else Color(0x55FFFFFF),
                 )
             }
@@ -743,14 +748,14 @@ private fun PlayerBottomBar(
             IconButton(onClick = onNextEpisode, enabled = hasNext) {
                 Icon(
                     Icons.Default.SkipNext,
-                    contentDescription = "下一集",
+                    contentDescription = stringResource(R.string.player_next_episode),
                     tint = if (hasNext) Color.White else Color(0x55FFFFFF),
                 )
             }
             IconButton(onClick = onSelectEpisode) {
                 Icon(
                     Icons.AutoMirrored.Filled.PlaylistPlay,
-                    contentDescription = "选集",
+                    contentDescription = stringResource(R.string.detail_episode_selection),
                     tint = Color.White,
                 )
             }
@@ -759,7 +764,8 @@ private fun PlayerBottomBar(
         IconButton(onClick = onFullscreenClick) {
             Icon(
                 imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                contentDescription = if (isFullscreen) "退出全屏" else "全屏",
+                contentDescription = if (isFullscreen) stringResource(R.string.player_exit_fullscreen)
+                else stringResource(R.string.player_fullscreen),
                 tint = Color.White,
             )
         }
@@ -781,13 +787,13 @@ fun PlaybackSettingsSheetContent(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Text(
-            text = "播放设置",
+            text = stringResource(R.string.player_settings),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 12.dp),
         )
         Text(
-            text = "倍速播放",
+            text = stringResource(R.string.player_speed),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp),

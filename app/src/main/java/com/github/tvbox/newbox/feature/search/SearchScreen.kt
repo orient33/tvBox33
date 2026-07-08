@@ -50,11 +50,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.ui.common.ErrorView
 import com.github.tvbox.newbox.ui.common.LoadingView
@@ -99,17 +101,18 @@ fun SearchScreen(
             },
             active = active,
             onActiveChange = { active = it },
-            placeholder = { Text("搜索影片…") },
+            placeholder = { Text(stringResource(R.string.search_placeholder)) },
             leadingIcon = {
                 IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
             },
             trailingIcon = {
                 IconButton(onClick = { viewModel.toggleListView() }) {
                     Icon(
                         if (listView) Icons.Default.Apps else Icons.AutoMirrored.Filled.ViewList,
-                        contentDescription = if (listView) "卡片视图" else "列表视图",
+                        contentDescription = if (listView) stringResource(R.string.common_card_view)
+                        else stringResource(R.string.common_list_view),
                     )
                 }
             },
@@ -205,7 +208,7 @@ private fun SearchResultContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text("没有找到结果", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.search_no_results), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         }
@@ -267,7 +270,7 @@ private fun SearchHistoryContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("输入关键词搜索", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.search_input_keyword), style = MaterialTheme.typography.bodyLarge)
         }
         return
     }
@@ -283,19 +286,20 @@ private fun SearchHistoryContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "搜索历史",
+                text = stringResource(R.string.search_history),
                 style = MaterialTheme.typography.titleMedium,
             )
             Row {
                 IconButton(onClick = { editMode = !editMode }) {
                     Icon(
                         imageVector = if (editMode) Icons.Default.Close else Icons.Default.Edit,
-                        contentDescription = if (editMode) "完成" else "编辑",
+                        contentDescription = if (editMode) stringResource(R.string.common_done)
+                        else stringResource(R.string.common_edit),
                     )
                 }
                 if (editMode) {
                     IconButton(onClick = onClearAll) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "清空")
+                        Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.common_clear))
                     }
                 }
             }
@@ -317,7 +321,7 @@ private fun SearchHistoryContent(
                         {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "删除",
+                                contentDescription = stringResource(R.string.common_delete),
                                 modifier = Modifier.size(16.dp),
                             )
                         }
@@ -361,7 +365,7 @@ private fun SourceFilterRail(
             SourceFilterItem(
                 selected = selectedSourceKey == null,
                 onClick = { onSelect(null) },
-                name = "全部",
+                name = stringResource(R.string.search_all_sources),
                 count = totalCount,
             )
         }

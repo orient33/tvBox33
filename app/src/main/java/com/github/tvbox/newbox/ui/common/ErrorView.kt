@@ -15,7 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.github.tvbox.newbox.R
 
 @Composable
 fun ErrorView(
@@ -43,7 +45,7 @@ fun ErrorView(
         if (onRetry != null) {
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onRetry) {
-                Text("重试")
+                Text(stringResource(R.string.common_retry))
             }
         }
     }

@@ -30,9 +30,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.domain.Episode
 import com.github.tvbox.newbox.domain.VodDetail
 
@@ -70,7 +72,7 @@ fun DetailContent(
                 )
                 if (detail.description.isNotBlank()) {
                     Text(
-                        text = "详情 >>",
+                        text = stringResource(R.string.detail_more),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
@@ -82,8 +84,9 @@ fun DetailContent(
         }
 
         item {
+            val episodeCountText = stringResource(R.string.detail_episode_count, episodes.size)
             val metaParts = buildList {
-                if (episodes.isNotEmpty()) add("${episodes.size}集")
+                if (episodes.isNotEmpty()) add(episodeCountText)
                 if (detail.year.isNotBlank()) add(detail.year)
                 if (detail.type.isNotBlank()) add(detail.type)
                 if (detail.area.isNotBlank()) add(detail.area)
@@ -138,13 +141,13 @@ fun DetailContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "选集",
+                    text = stringResource(R.string.detail_episode_selection),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 if (episodes.isNotEmpty()) {
                     Text(
-                        text = "查看全部",
+                        text = stringResource(R.string.detail_view_all),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { onViewAllEpisodes() },
@@ -156,7 +159,7 @@ fun DetailContent(
         if (episodes.isEmpty()) {
             item {
                 Text(
-                    text = "暂无播放数据",
+                    text = stringResource(R.string.detail_no_episode_data),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(16.dp),
                 )
@@ -305,7 +308,8 @@ fun SynopsisSheetContent(
                 IconButton(onClick = onToggleCollect) {
                     Icon(
                         imageVector = if (isCollected) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (isCollected) "取消收藏" else "收藏",
+                        contentDescription = if (isCollected) stringResource(R.string.detail_cancel_collect)
+                        else stringResource(R.string.detail_collect),
                         tint = if (isCollected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -314,7 +318,7 @@ fun SynopsisSheetContent(
         if (detail.director.isNotBlank()) {
             item {
                 Text(
-                    text = "导演: ${detail.director}",
+                    text = stringResource(R.string.detail_director_format, detail.director),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -322,7 +326,7 @@ fun SynopsisSheetContent(
         if (detail.actor.isNotBlank()) {
             item {
                 Text(
-                    text = "主演: ${detail.actor}",
+                    text = stringResource(R.string.detail_actor_format, detail.actor),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -330,7 +334,7 @@ fun SynopsisSheetContent(
         if (detail.description.isNotBlank()) {
             item {
                 Text(
-                    text = "简介",
+                    text = stringResource(R.string.detail_intro),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )

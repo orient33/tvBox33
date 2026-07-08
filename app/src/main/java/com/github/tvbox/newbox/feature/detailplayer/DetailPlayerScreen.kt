@@ -30,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.ui.common.ErrorView
 import com.github.tvbox.newbox.ui.common.LoadingView
@@ -67,6 +69,9 @@ fun DetailPlayerScreen(
     val isCollected by viewModel.isCollected.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val volumeGestureLabel = stringResource(R.string.player_gesture_volume)
+    val brightnessGestureLabel = stringResource(R.string.player_gesture_brightness)
+    val progressGestureLabel = stringResource(R.string.player_gesture_progress)
 
     val dataSourceFactory = remember { DefaultHttpDataSource.Factory() }
     val exoPlayer = remember {
@@ -141,7 +146,7 @@ fun DetailPlayerScreen(
         val nextVolume = (nextProgress * maxVolume).roundToInt().coerceIn(0, maxVolume)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, nextVolume, 0)
         isAdjustingGesture = true
-        gestureHint = PlayerGestureHint("音量", nextProgress)
+        gestureHint = PlayerGestureHint(volumeGestureLabel, nextProgress)
     }
     val updateBrightness: (Float) -> Unit = { delta ->
         val window = activity?.window
@@ -152,7 +157,7 @@ fun DetailPlayerScreen(
             attrs.screenBrightness = nextBrightness
             window.attributes = attrs
             isAdjustingGesture = true
-            gestureHint = PlayerGestureHint("亮度", nextBrightness)
+            gestureHint = PlayerGestureHint(brightnessGestureLabel, nextBrightness)
         }
     }
 
@@ -321,7 +326,11 @@ fun DetailPlayerScreen(
             onSeekPreview = { pos ->
                 isAdjustingGesture = true
                 currentPosition = pos
-                gestureHint = PlayerGestureHint("进度", if (duration > 0L) pos.toFloat() / duration else 0f, formatTime(pos))
+                gestureHint = PlayerGestureHint(
+                    progressGestureLabel,
+                    if (duration > 0L) pos.toFloat() / duration else 0f,
+                    formatTime(pos),
+                )
             },
             onVolumeChange = updateVolume,
             onBrightnessChange = updateBrightness,
@@ -430,7 +439,11 @@ fun DetailPlayerScreen(
             onSeekPreview = { pos ->
                 isAdjustingGesture = true
                 currentPosition = pos
-                gestureHint = PlayerGestureHint("进度", if (duration > 0L) pos.toFloat() / duration else 0f, formatTime(pos))
+                gestureHint = PlayerGestureHint(
+                    progressGestureLabel,
+                    if (duration > 0L) pos.toFloat() / duration else 0f,
+                    formatTime(pos),
+                )
             },
             onVolumeChange = updateVolume,
             onBrightnessChange = updateBrightness,
@@ -442,7 +455,8 @@ fun DetailPlayerScreen(
 
         when (val state = detailState) {
             is DetailUiState.Idle -> {
-                if (vodItem != null) LoadingView() else Text("未选择影片", modifier = Modifier.padding(16.dp))
+                if (vodItem != null) LoadingView()
+                else Text(stringResource(R.string.detail_no_vod_selected), modifier = Modifier.padding(16.dp))
             }
             is DetailUiState.Loading -> LoadingView()
             is DetailUiState.Error -> ErrorView(message = state.message)

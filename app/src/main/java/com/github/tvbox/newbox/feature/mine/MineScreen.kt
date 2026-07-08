@@ -43,8 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.github.tvbox.newbox.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,17 +64,17 @@ fun MineScreen(
     var showAbout by remember { mutableStateOf(false) }
 
     val notImplemented: () -> Unit = {
-        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("我的") },
+                title = { Text(stringResource(R.string.mine_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
             )
@@ -87,28 +89,28 @@ fun MineScreen(
         ) {
             MineEntry(
                 icon = Icons.Default.Subscriptions,
-                title = "订阅管理",
+                title = stringResource(R.string.mine_subscription_management),
                 onClick = onSubscriptionClick,
             )
             MineEntry(
                 icon = Icons.Default.FavoriteBorder,
-                title = "我的收藏",
+                title = stringResource(R.string.mine_favorites),
                 onClick = onFavoriteClick,
             )
             MineEntry(
                 icon = Icons.Default.History,
-                title = "观看历史",
+                title = stringResource(R.string.mine_history),
                 onClick = onHistoryClick,
             )
             MineEntry(
                 icon = Icons.Default.Equalizer,
-                title = "播放设置",
+                title = stringResource(R.string.mine_play_settings),
                 onClick = notImplemented,
             )
             HorizontalDivider()
             MineEntry(
                 icon = Icons.Default.Info,
-                title = "关于",
+                title = stringResource(R.string.mine_about),
                 onClick = { showAbout = true },
             )
         }
@@ -204,20 +206,20 @@ private fun AboutSheet(
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "基于 TVBoxOS-Mobile / MBox 重构",
+                text = stringResource(R.string.mine_about_rebuild),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "感谢开源社区：TVBox、FongMi/TV、q215613905/TVBoxOS",
+                text = stringResource(R.string.mine_about_thanks),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "本应用仅作学习交流使用，所有视频内容来自第三方订阅源，与本应用无关。",
+                text = stringResource(R.string.mine_about_disclaimer),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

@@ -43,11 +43,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.data.local.entity.VodCollect
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.ui.common.VodCard
@@ -70,17 +72,18 @@ fun FavoriteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("我的收藏") },
+                title = { Text(stringResource(R.string.mine_favorites)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.toggleListView() }) {
                         Icon(
                             imageVector = if (listView) Icons.Default.Apps else Icons.AutoMirrored.Filled.ViewList,
-                            contentDescription = if (listView) "卡片视图" else "列表视图",
+                            contentDescription = if (listView) stringResource(R.string.common_card_view)
+                            else stringResource(R.string.common_list_view),
                         )
                     }
                 },
@@ -103,12 +106,12 @@ fun FavoriteScreen(
                     modifier = Modifier.size(64.dp),
                 )
                 Text(
-                    text = "暂无收藏",
+                    text = stringResource(R.string.favorite_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 16.dp),
                 )
                 Text(
-                    text = "在详情页点击收藏按钮即可添加",
+                    text = stringResource(R.string.favorite_empty_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
@@ -162,18 +165,18 @@ fun FavoriteScreen(
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("取消收藏") },
-            text = { Text("确定取消收藏「${target.vodName}」吗？") },
+            title = { Text(stringResource(R.string.favorite_cancel_title)) },
+            text = { Text(stringResource(R.string.favorite_cancel_message, target.vodName)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.deleteCollect(target.vodId)
                         deleteTarget = null
                     },
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("取消") }
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -222,7 +225,7 @@ private fun FavoriteListItem(
                     )
                     if (collect.sourceName.isNotBlank()) {
                         Text(
-                            text = "来源: ${collect.sourceName}",
+                            text = stringResource(R.string.common_source_format, collect.sourceName),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -230,7 +233,10 @@ private fun FavoriteListItem(
                         )
                     }
                     Text(
-                        text = "收藏于 ${dateFormat.format(Date(collect.collectTime))}",
+                        text = stringResource(
+                            R.string.favorite_collected_at,
+                            dateFormat.format(Date(collect.collectTime)),
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

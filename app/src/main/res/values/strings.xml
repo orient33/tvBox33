@@ -1,3 +1,109 @@
 <resources>
     <string name="app_name">NewBox</string>
+
+    <string name="common_back">返回</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_confirm">确定</string>
+    <string name="common_retry">重试</string>
+    <string name="common_loading">加载中…</string>
+    <string name="common_buffering">缓冲中…</string>
+    <string name="common_unknown">未知</string>
+    <string name="common_delete">删除</string>
+    <string name="common_edit">编辑</string>
+    <string name="common_done">完成</string>
+    <string name="common_clear">清空</string>
+    <string name="common_source_format">来源: %1$s</string>
+    <string name="common_load_failed">加载失败</string>
+    <string name="common_feature_in_development">功能开发中</string>
+    <string name="common_card_view">卡片视图</string>
+    <string name="common_list_view">列表视图</string>
+
+    <string name="home_switch_source">切换源</string>
+    <string name="home_search">搜索</string>
+    <string name="home_mine">我的</string>
+    <string name="home_no_sources">暂无视频源</string>
+    <string name="home_add_subscription_hint">点击右上角头像添加订阅</string>
+    <string name="home_source_blocked_suffix">（已屏蔽）</string>
+    <string name="home_block_source">屏蔽</string>
+    <string name="home_unblock_source">取消屏蔽</string>
+    <string name="home_main_page">主页</string>
+    <string name="home_empty_title">当前源暂无内容</string>
+    <string name="home_empty_message">请尝试切换其他源或分类</string>
+
+    <string name="search_placeholder">搜索影片…</string>
+    <string name="search_no_results">没有找到结果</string>
+    <string name="search_input_keyword">输入关键词搜索</string>
+    <string name="search_history">搜索历史</string>
+    <string name="search_all_sources">全部</string>
+
+    <string name="mine_title">我的</string>
+    <string name="mine_subscription_management">订阅管理</string>
+    <string name="mine_favorites">我的收藏</string>
+    <string name="mine_history">观看历史</string>
+    <string name="mine_play_settings">播放设置</string>
+    <string name="mine_about">关于</string>
+    <string name="mine_about_rebuild">基于 TVBoxOS-Mobile / MBox 重构</string>
+    <string name="mine_about_thanks">感谢开源社区：TVBox、FongMi/TV、q215613905/TVBoxOS</string>
+    <string name="mine_about_disclaimer">本应用仅作学习交流使用，所有视频内容来自第三方订阅源，与本应用无关。</string>
+
+    <string name="favorite_empty_title">暂无收藏</string>
+    <string name="favorite_empty_message">在详情页点击收藏按钮即可添加</string>
+    <string name="favorite_cancel_title">取消收藏</string>
+    <string name="favorite_cancel_message">确定取消收藏「%1$s」吗？</string>
+    <string name="favorite_collected_at">收藏于 %1$s</string>
+
+    <string name="history_empty_title">暂无观看历史</string>
+    <string name="history_empty_message">播放影片即可自动记录</string>
+    <string name="history_delete_title">删除历史</string>
+    <string name="history_delete_message">确定删除「%1$s」的观看记录吗？</string>
+    <string name="history_watched_to">观看到 %1$s</string>
+
+    <string name="detail_more">详情 &gt;&gt;</string>
+    <string name="detail_episode_count">%1$d集</string>
+    <string name="detail_episode_selection">选集</string>
+    <string name="detail_view_all">查看全部</string>
+    <string name="detail_no_episode_data">暂无播放数据</string>
+    <string name="detail_collect">收藏</string>
+    <string name="detail_cancel_collect">取消收藏</string>
+    <string name="detail_director_format">导演: %1$s</string>
+    <string name="detail_actor_format">主演: %1$s</string>
+    <string name="detail_intro">简介</string>
+    <string name="detail_no_vod_selected">未选择影片</string>
+
+    <string name="player_unlock">解锁</string>
+    <string name="player_info">播放信息</string>
+    <string name="player_settings">播放设置</string>
+    <string name="player_lock">锁屏</string>
+    <string name="player_url">播放地址</string>
+    <string name="player_resolution">分辨率</string>
+    <string name="player_codec">编码</string>
+    <string name="player_bitrate">码率</string>
+    <string name="player_frame_rate">帧率</string>
+    <string name="player_pause">暂停</string>
+    <string name="player_play">播放</string>
+    <string name="player_previous_episode">上一集</string>
+    <string name="player_next_episode">下一集</string>
+    <string name="player_fullscreen">全屏</string>
+    <string name="player_exit_fullscreen">退出全屏</string>
+    <string name="player_speed">倍速播放</string>
+    <string name="player_gesture_volume">音量</string>
+    <string name="player_gesture_brightness">亮度</string>
+    <string name="player_gesture_progress">进度</string>
+
+    <string name="settings_subscription_management">订阅管理</string>
+    <string name="settings_add_subscription">添加订阅</string>
+    <string name="settings_add_routes_success">已添加 %1$d 条线路</string>
+    <string name="settings_no_subscriptions">暂无订阅</string>
+    <string name="settings_add_subscription_hint">点击 + 添加订阅地址</string>
+    <string name="settings_default_source_title">源%1$d</string>
+    <string name="settings_subscription_url">订阅地址</string>
+    <string name="settings_select_repository">选择仓库</string>
+    <string name="settings_select_warehouse_source">选择仓/源</string>
+    <string name="settings_edit_title">编辑标题</string>
+    <string name="settings_title">标题</string>
+    <string name="settings_source_count_format">%1$s · %2$d 个网站</string>
+    <string name="settings_multi_warehouse">多仓</string>
+    <string name="settings_multi_warehouse_name">多仓 · %1$s</string>
+    <string name="settings_switch_warehouse_failed">切换仓失败</string>
+
 </resources>

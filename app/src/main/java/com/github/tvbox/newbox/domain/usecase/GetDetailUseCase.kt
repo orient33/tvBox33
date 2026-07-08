@@ -2,6 +2,7 @@ package com.github.tvbox.newbox.domain.usecase
 
 import android.content.Context
 import com.github.tvbox.osc.util.Logger
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -77,7 +78,7 @@ class GetDetailUseCase @Inject constructor(
                 director = "",
                 description = "",
                 seriesFlags = listOf(""),
-                seriesMap = mapOf("" to listOf(Episode(name = "播放", url = params.vodId))),
+                seriesMap = mapOf("" to listOf(Episode(name = appContext.getString(R.string.player_play), url = params.vodId))),
                 sourceKey = params.sourceKey,
             )
         }

@@ -43,11 +43,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.data.local.entity.VodRecord
 import com.github.tvbox.newbox.domain.VodItem
 import com.github.tvbox.newbox.ui.common.VodCard
@@ -67,17 +69,18 @@ fun HistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("观看历史") },
+                title = { Text(stringResource(R.string.mine_history)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.toggleListView() }) {
                         Icon(
                             imageVector = if (listView) Icons.Default.Apps else Icons.AutoMirrored.Filled.ViewList,
-                            contentDescription = if (listView) "卡片视图" else "列表视图",
+                            contentDescription = if (listView) stringResource(R.string.common_card_view)
+                            else stringResource(R.string.common_list_view),
                         )
                     }
                 },
@@ -100,12 +103,12 @@ fun HistoryScreen(
                     modifier = Modifier.size(64.dp),
                 )
                 Text(
-                    text = "暂无观看历史",
+                    text = stringResource(R.string.history_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 16.dp),
                 )
                 Text(
-                    text = "播放影片即可自动记录",
+                    text = stringResource(R.string.history_empty_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
@@ -159,18 +162,18 @@ fun HistoryScreen(
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("删除历史") },
-            text = { Text("确定删除「${target.vodName}」的观看记录吗？") },
+            title = { Text(stringResource(R.string.history_delete_title)) },
+            text = { Text(stringResource(R.string.history_delete_message, target.vodName)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.deleteRecord(target.vodId)
                         deleteTarget = null
                     },
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("取消") }
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.common_cancel)) }
             },
         )
     }
@@ -218,7 +221,7 @@ private fun HistoryListItem(
                     )
                     if (record.sourceName.isNotBlank()) {
                         Text(
-                            text = "来源: ${record.sourceName}",
+                            text = stringResource(R.string.common_source_format, record.sourceName),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -226,7 +229,10 @@ private fun HistoryListItem(
                         )
                     }
                     Text(
-                        text = "观看到 ${formatPlayProgress(record.lastPlayProgress)}",
+                        text = stringResource(
+                            R.string.history_watched_to,
+                            formatPlayProgress(record.lastPlayProgress),
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,

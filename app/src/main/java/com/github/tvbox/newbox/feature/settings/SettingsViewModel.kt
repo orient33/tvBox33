@@ -1,7 +1,9 @@
 package com.github.tvbox.newbox.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.tvbox.newbox.R
 import com.github.tvbox.newbox.data.repository.ProbeResult
 import com.github.tvbox.newbox.data.repository.RouteEntry
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -10,6 +12,7 @@ import com.github.tvbox.newbox.data.store.SettingsStore
 import com.github.tvbox.newbox.data.store.WarehouseData
 import com.github.tvbox.newbox.domain.SourceConfig
 import com.github.tvbox.osc.util.Logger
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +26,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val settingsStore: SettingsStore,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val sourceCounts: StateFlow<Map<String, Int>> = subscriptionRepository.sourceCounts
@@ -79,7 +83,7 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Logger.i("df", "fail add ", e)
-                _error.value = e.message ?: "加载失败"
+                _error.value = e.message ?: context.getString(R.string.common_load_failed)
             }
         }
     }
@@ -90,7 +94,7 @@ class SettingsViewModel @Inject constructor(
                 subscriptionRepository.loadSubscription(url)
                 _error.value = null
             } catch (e: Exception) {
-                _error.value = e.message ?: "加载失败"
+                _error.value = e.message ?: context.getString(R.string.common_load_failed)
             }
         }
     }
@@ -105,7 +109,7 @@ class SettingsViewModel @Inject constructor(
                 subscriptionRepository.selectSubscription(subscriptionUrl)
             } catch (e: Exception) {
                 Logger.e("SettingsVM", "selectWarehouse failed: ${e.message}", e)
-                _error.value = e.message ?: "切换仓失败"
+                _error.value = e.message ?: context.getString(R.string.settings_switch_warehouse_failed)
             }
         }
     }
