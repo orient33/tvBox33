@@ -24,17 +24,26 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class Connect {
-    static OkHttpClient client = new OkHttpClient();
+    static OkHttpClient client;
+
+    public static void setClient(OkHttpClient okHttpClient) {
+        if (okHttpClient != null) client = okHttpClient;
+    }
+
+    private static OkHttpClient getClient() {
+        if (client == null) throw new IllegalStateException("OkHttpClient not configured");
+        return client;
+    }
 
     public static Call to(String url, Req req) {
-        client = new OkHttpClient.Builder()
+        OkHttpClient requestClient = getClient().newBuilder()
                 .followRedirects(req.isRedirect())
                 .followSslRedirects(req.isRedirect())
                 .connectTimeout(req.getTimeout(), TimeUnit.MILLISECONDS)
                 .readTimeout(req.getTimeout(), TimeUnit.MILLISECONDS)
                 .writeTimeout(req.getTimeout(), TimeUnit.MILLISECONDS)
                 .build();
-        return client.newCall(getRequest(url, req, Headers.of(req.getHeader())));
+        return requestClient.newCall(getRequest(url, req, Headers.of(req.getHeader())));
     }
 
     public static JSObject success(QuickJSContext ctx, Req req, Response res) {

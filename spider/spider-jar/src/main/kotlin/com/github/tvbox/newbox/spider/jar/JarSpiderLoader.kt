@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class JarSpiderLoader(
     private val context: Context,
-    private val client: OkHttpClient = OkHttpClient(),
+    private val client: OkHttpClient,
 ) : SpiderLoader {
 
     companion object { private const val TAG = "NewBox-JarSpi" }

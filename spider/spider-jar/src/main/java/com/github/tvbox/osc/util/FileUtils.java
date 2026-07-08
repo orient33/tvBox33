@@ -28,7 +28,16 @@ import okhttp3.Response;
 
 public class FileUtils {
     private static final Pattern URLJOIN = Pattern.compile("^http.*\\.(js|txt|json|m3u)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
-    private static final OkHttpClient CLIENT = new OkHttpClient();
+    private static OkHttpClient client;
+
+    public static void setClient(OkHttpClient okHttpClient) {
+        if (okHttpClient != null) client = okHttpClient;
+    }
+
+    private static OkHttpClient getClient() {
+        if (client == null) throw new IllegalStateException("OkHttpClient not configured");
+        return client;
+    }
 
     public static File open(String str) {
         Context context = Init.context();
@@ -100,7 +109,7 @@ public class FileUtils {
             Request.Builder builder = new Request.Builder().url(url);
             if (headers != null) builder.headers(Headers.of(headers));
             else builder.header("User-Agent", url.startsWith("https://gitcode.net/") ? "okhttp/3.15" : "okhttp/3.15");
-            try (Response response = CLIENT.newCall(builder.build()).execute()) {
+            try (Response response = getClient().newCall(builder.build()).execute()) {
                 if (response.isSuccessful() && response.body() != null) return new String(response.body().bytes(), "UTF-8");
             }
         } catch (Exception ignored) {

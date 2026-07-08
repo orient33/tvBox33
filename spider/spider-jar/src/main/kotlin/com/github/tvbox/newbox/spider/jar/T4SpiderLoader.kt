@@ -13,7 +13,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.IOException
 
 class T4SpiderLoader(
-    private val client: OkHttpClient = OkHttpClient(),
+    private val client: OkHttpClient,
 ) : SpiderLoader {
 
     companion object { private const val TAG = "NewBox-HttpApi" }

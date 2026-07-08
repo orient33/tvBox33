@@ -31,6 +31,8 @@ import java.util.concurrent.Future;
 
 import java.util.concurrent.CompletableFuture;
 
+import okhttp3.OkHttpClient;
+
 public class NewBoxJsSpider extends Spider {
 
     private final ExecutorService executor;
@@ -41,11 +43,13 @@ public class NewBoxJsSpider extends Spider {
     private final String api;
     private boolean cat;
 
-    public NewBoxJsSpider(String key, String api, Class<?> cls) throws Exception {
+    public NewBoxJsSpider(String key, String api, Class<?> cls, OkHttpClient client) throws Exception {
         this.key = "J" + MD5.encode(key);
         this.executor = Executors.newSingleThreadExecutor();
         this.api = api;
         this.dex = cls;
+        FileUtils.setClient(client);
+        Connect.setClient(client);
         initializeJS();
     }
     public void cancelByTag() {

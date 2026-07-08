@@ -25,6 +25,7 @@ class App : Application(), SingletonImageLoader.Factory {
     interface AppEntryPoint {
         fun spiderFactory(): SpiderFactory
         fun subscriptionRepository(): SubscriptionRepository
+        fun okHttpClient(): OkHttpClient
     }
 
     private var proxyServer: SpiderProxyServer? = null
@@ -55,7 +56,8 @@ class App : Application(), SingletonImageLoader.Factory {
     }
 
     override fun newImageLoader(context: android.content.Context): ImageLoader {
-        val client = OkHttpClient.Builder()
+        val entryPoint = EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java)
+        val client = entryPoint.okHttpClient().newBuilder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .header("User-Agent", "Dalvik/2.1.0 (Linux; U; Android 15; M2102J2SC Build/AP2A.240905.003)")

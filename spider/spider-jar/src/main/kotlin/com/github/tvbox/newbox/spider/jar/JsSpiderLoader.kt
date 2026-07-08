@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class JsSpiderLoader(
     context: Context,
-    private val client: OkHttpClient = OkHttpClient(),
+    private val client: OkHttpClient,
 ) : SpiderLoader {
     private val app = context.applicationContext
     private val spiders = ConcurrentHashMap<String, Spider>()
@@ -43,7 +43,7 @@ class JsSpiderLoader(
         val jsApiClass = config.jar
             ?.takeIf { it.isNotBlank() }
             ?.let { loadJsApiClass(it) }
-        val spider = LegacySpiderAdapter(NewBoxJsSpider(config.key, config.api, jsApiClass))
+        val spider = LegacySpiderAdapter(NewBoxJsSpider(config.key, config.api, jsApiClass, client))
         spider.init(app, config.ext.orEmpty())
         spiders[config.key] = spider
         return spider
