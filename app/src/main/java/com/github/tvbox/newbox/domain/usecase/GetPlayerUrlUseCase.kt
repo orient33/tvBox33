@@ -7,6 +7,7 @@ import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.BaseUseCase
 import com.github.tvbox.newbox.domain.PlayerResult
+import com.github.tvbox.newbox.player.ThunderResolver
 import com.github.tvbox.newbox.player.VideoSniffer
 import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
@@ -76,7 +77,8 @@ class GetPlayerUrlUseCase @Inject constructor(
             Logger.e(TAG, "playerContent raw JSON (first 500 chars): ${resultJson.take(500)}")
             throw IllegalStateException("解析播放地址失败: ${e.message}", e)
         }
-        val playerResult = parser.parsePlayerContent(result)
+        val playerResult = resolveThunderUrl(parser.parsePlayerContent(result))
+        validatePlayableUrl(playerResult.url)
         Logger.d(
             TAG,
             "playerContent RESULT source=${source.key}/${source.name}, parse=${result.parse}, " +
@@ -98,6 +100,7 @@ class GetPlayerUrlUseCase @Inject constructor(
             }
             if (sniffedUrl != null) {
                 Logger.d(TAG, "sniffed video URL: $sniffedUrl")
+                validatePlayableUrl(sniffedUrl)
                 playerResult.copy(url = sniffedUrl, needSniff = false)
             } else {
                 Logger.e(TAG, "sniff failed, no video URL found")
@@ -109,4 +112,22 @@ class GetPlayerUrlUseCase @Inject constructor(
     }
 
     private suspend fun <T> first(flow: kotlinx.coroutines.flow.Flow<T>): T = flow.first()
+
+    private fun resolveThunderUrl(playerResult: PlayerResult): PlayerResult {
+        if (!ThunderResolver.needsResolve(playerResult.url)) return playerResult
+        val resolvedUrl = ThunderResolver.resolvePlayUrl(appContext, playerResult.url)
+            ?: throw IllegalStateException("磁力链接解析下载超时，请稍后重试或切换播放源")
+        Logger.d(TAG, "Thunder resolved: ${playerResult.url} -> $resolvedUrl")
+        return playerResult.copy(url = resolvedUrl, needSniff = false)
+    }
+
+    private fun validatePlayableUrl(url: String) {
+        if (url.isBlank()) throw IllegalStateException("播放地址为空")
+        val scheme = url.substringBefore(":", missingDelimiterValue = "").lowercase()
+        when (scheme) {
+            "magnet" -> throw IllegalStateException("当前播放器暂不支持磁力链接，请切换其它播放源")
+            "ed2k" -> throw IllegalStateException("当前播放器暂不支持电驴链接，请切换其它播放源")
+            "thunder" -> throw IllegalStateException("当前播放器暂不支持迅雷链接，请切换其它播放源")
+        }
+    }
 }

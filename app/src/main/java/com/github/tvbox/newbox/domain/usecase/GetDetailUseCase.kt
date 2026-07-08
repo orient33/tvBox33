@@ -1,5 +1,6 @@
 package com.github.tvbox.newbox.domain.usecase
 
+import android.content.Context
 import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
@@ -7,8 +8,10 @@ import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.BaseUseCase
 import com.github.tvbox.newbox.domain.Episode
 import com.github.tvbox.newbox.domain.VodDetail
+import com.github.tvbox.newbox.player.ThunderResolver
 import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
@@ -18,6 +21,7 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 class GetDetailUseCase @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val spiderFactory: SpiderFactory,
     private val subscriptionRepository: SubscriptionRepository,
     private val parser: SpiderResultParser,
@@ -79,8 +83,9 @@ class GetDetailUseCase @Inject constructor(
         }
         try {
             val result = json.decodeFromString<com.github.tvbox.newbox.spider.api.result.DetailContentResult>(resultJson)
-            parser.parseDetailContent(result, params.sourceKey)
+            val detail = parser.parseDetailContent(result, params.sourceKey)
                 ?: throw IllegalStateException("Detail not found for: ${params.vodId}")
+            ThunderResolver.expandDetail(appContext, detail)
         } catch (e: Exception) {
             Logger.e(
                 TAG,

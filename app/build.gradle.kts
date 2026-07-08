@@ -111,6 +111,9 @@ dependencies {
   // Gson (required by spider JARs at runtime)
   implementation("com.google.code.gson:gson:2.11.0")
 
+  // Thunder magnet/torrent resolver (ported from original project)
+  implementation(files("libs/thunder.jar"))
+
   // Media3
 implementation(libs.media3.exoplayer)
 implementation(libs.media3.exoplayer.hls)
