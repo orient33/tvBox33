@@ -63,6 +63,8 @@ class DefaultSubscriptionRepository @Inject constructor(
     private val _sourcesLoaded = MutableStateFlow(false)
     override val sourcesLoaded: StateFlow<Boolean> = _sourcesLoaded.asStateFlow()
 
+    override val blockedSourceKeys: Flow<Set<String>> = settingsStore.blockedSourceKeys
+
     override val currentSubscriptionUrl: StateFlow<String?> = combine(
         _sources,
         settingsStore.currentSourceKey,
@@ -204,6 +206,10 @@ class DefaultSubscriptionRepository @Inject constructor(
 
     override suspend fun setCurrentSource(key: String) {
         settingsStore.setCurrentSource(key)
+    }
+
+    override suspend fun setSourceBlocked(key: String, blocked: Boolean) {
+        settingsStore.setSourceBlocked(key, blocked)
     }
 
     override suspend fun removeSubscription(url: String) {

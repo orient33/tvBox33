@@ -36,6 +36,7 @@ class SettingsStore @Inject constructor(
         private val KEY_FAVORITE_LIST_VIEW = booleanPreferencesKey("favorite_list_view")
         private val KEY_HISTORY_LIST_VIEW = booleanPreferencesKey("history_list_view")
         private val KEY_SEARCH_HISTORY = stringPreferencesKey("search_history")
+        private val KEY_BLOCKED_SOURCE_KEYS = stringSetPreferencesKey("blocked_source_keys")
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -78,6 +79,10 @@ class SettingsStore @Inject constructor(
     val searchHistory: Flow<List<String>> = context.dataStore.data.map { prefs ->
         val raw = prefs[KEY_SEARCH_HISTORY] ?: return@map emptyList()
         runCatching { json.decodeFromString<List<String>>(raw) }.getOrDefault(emptyList())
+    }
+
+    val blockedSourceKeys: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[KEY_BLOCKED_SOURCE_KEYS] ?: emptySet()
     }
 
     suspend fun addSubscriptionUrl(url: String) {
@@ -148,6 +153,15 @@ class SettingsStore @Inject constructor(
     suspend fun clearSearchHistory() {
         context.dataStore.edit { prefs ->
             prefs.remove(KEY_SEARCH_HISTORY)
+        }
+    }
+
+    suspend fun setSourceBlocked(key: String, blocked: Boolean) {
+        if (key.isBlank()) return
+        context.dataStore.edit { prefs ->
+            val existing = prefs[KEY_BLOCKED_SOURCE_KEYS]?.toMutableSet() ?: mutableSetOf()
+            if (blocked) existing.add(key) else existing.remove(key)
+            prefs[KEY_BLOCKED_SOURCE_KEYS] = existing
         }
     }
 

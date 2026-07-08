@@ -69,6 +69,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentSource by viewModel.currentSource.collectAsStateWithLifecycle()
     val sources by viewModel.sources.collectAsStateWithLifecycle()
+    val blockedSourceKeys by viewModel.blockedSourceKeys.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val selectedFilters by viewModel.selectedFilters.collectAsStateWithLifecycle()
     val isLoadingMore by viewModel.isLoadingMore.collectAsStateWithLifecycle()
@@ -206,10 +207,12 @@ fun HomeScreen(
         SourceSwitchDialog(
             sources = sources,
             currentKey = currentSource?.key,
+            blockedKeys = blockedSourceKeys,
             onSelect = { key ->
                 viewModel.selectSource(key)
                 showSourceDialog = false
             },
+            onBlockedChange = viewModel::setSourceBlocked,
             onDismiss = { showSourceDialog = false },
         )
     }
@@ -219,7 +222,9 @@ fun HomeScreen(
 private fun SourceSwitchDialog(
     sources: List<SourceConfig>,
     currentKey: String?,
+    blockedKeys: Set<String>,
     onSelect: (String) -> Unit,
+    onBlockedChange: (String, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
@@ -232,22 +237,35 @@ private fun SourceSwitchDialog(
                 items(sources.size) { index ->
                     val source = sources[index]
                     val isSelected = source.key == currentKey
-                    TextButton(
-                        onClick = { onSelect(source.key) },
+                    val isBlocked = source.key in blockedKeys
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = if (isSelected) "● ${index + 1}. ${source.name}" else "${index + 1}. ${source.name}",
-                            style = if (isSelected) MaterialTheme.typography.bodyLarge
-                            else MaterialTheme.typography.bodyMedium,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .align(Alignment.CenterVertically),
-                        )
+                        TextButton(
+                            onClick = { onSelect(source.key) },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                text = buildString {
+                                    if (isSelected) append("● ")
+                                    append("${index + 1}. ${source.name}")
+                                    if (isBlocked) append("（已屏蔽）")
+                                },
+                                style = if (isSelected) MaterialTheme.typography.bodyLarge
+                                else MaterialTheme.typography.bodyMedium,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        TextButton(
+                            onClick = { onBlockedChange(source.key, !isBlocked) },
+                        ) {
+                            Text(if (isBlocked) "取消屏蔽" else "屏蔽")
+                        }
                     }
                 }
             }

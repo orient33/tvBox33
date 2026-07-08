@@ -61,7 +61,9 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             if (recordHistory) settingsStore.addSearchHistory(keyword)
             try {
+                val blockedKeys = subscriptionRepository.blockedSourceKeys.first()
                 val sources = subscriptionRepository.sources.first()
+                    .filter { it.key !in blockedKeys }
                 val totalSources = sources.count { it.searchable }
                 val results = mutableListOf<SearchResult>()
                 var completedSources = 0

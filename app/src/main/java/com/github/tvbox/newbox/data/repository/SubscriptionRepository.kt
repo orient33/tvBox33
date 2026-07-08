@@ -19,10 +19,12 @@ interface SubscriptionRepository {
     val currentSubscriptionUrl: StateFlow<String?>
     val sourceCounts: StateFlow<Map<String, Int>>
     val sourcesLoaded: StateFlow<Boolean>
+    val blockedSourceKeys: Flow<Set<String>>
     suspend fun loadSubscription(url: String)
     suspend fun loadWarehouse(parentUrl: String, warehouseUrl: String)
     suspend fun removeSubscription(url: String)
     suspend fun setCurrentSource(key: String)
+    suspend fun setSourceBlocked(key: String, blocked: Boolean)
     suspend fun selectSubscription(url: String)
     suspend fun probeSubscription(url: String): ProbeResult
 }

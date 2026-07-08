@@ -3,6 +3,7 @@ package com.github.tvbox.newbox.feature.search
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -392,7 +393,13 @@ private fun SourceFilterItem(
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
+        Column(
+            modifier = Modifier
+                .defaultMinSize(minHeight = 36.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
             Text(
                 text = "$count $name",
                 maxLines = 2,

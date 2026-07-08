@@ -52,6 +52,9 @@ class HomeViewModel @Inject constructor(
     val currentSource: StateFlow<SourceConfig?> = subscriptionRepository.currentSource
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val blockedSourceKeys: StateFlow<Set<String>> = subscriptionRepository.blockedSourceKeys
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     val sourcesLoaded: StateFlow<Boolean> = subscriptionRepository.sourcesLoaded
 
     init {
@@ -109,6 +112,12 @@ class HomeViewModel @Inject constructor(
             selectedCategoryIdFlow.value = null
             selectedFiltersFlow.value = emptyMap()
             subscriptionRepository.setCurrentSource(key)
+        }
+    }
+
+    fun setSourceBlocked(key: String, blocked: Boolean) {
+        viewModelScope.launch {
+            subscriptionRepository.setSourceBlocked(key, blocked)
         }
     }
 
