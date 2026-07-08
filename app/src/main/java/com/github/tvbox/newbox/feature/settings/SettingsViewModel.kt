@@ -9,6 +9,7 @@ import com.github.tvbox.newbox.data.repository.WarehouseEntry
 import com.github.tvbox.newbox.data.store.SettingsStore
 import com.github.tvbox.newbox.data.store.WarehouseData
 import com.github.tvbox.newbox.domain.SourceConfig
+import com.github.tvbox.osc.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -77,7 +78,7 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.i("df", "fail add ", e)
+                Logger.i("df", "fail add ", e)
                 _error.value = e.message ?: "加载失败"
             }
         }
@@ -103,7 +104,7 @@ class SettingsViewModel @Inject constructor(
                 subscriptionRepository.loadWarehouse(subscriptionUrl, warehouses[warehouseIndex].url)
                 subscriptionRepository.selectSubscription(subscriptionUrl)
             } catch (e: Exception) {
-                android.util.Log.e("SettingsVM", "selectWarehouse failed: ${e.message}", e)
+                Logger.e("SettingsVM", "selectWarehouse failed: ${e.message}", e)
                 _error.value = e.message ?: "切换仓失败"
             }
         }

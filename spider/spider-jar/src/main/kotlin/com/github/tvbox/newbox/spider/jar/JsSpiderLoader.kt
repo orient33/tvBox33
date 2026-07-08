@@ -1,7 +1,7 @@
 package com.github.tvbox.newbox.spider.jar
 
 import android.content.Context
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.spider.api.Spider
 import com.github.tvbox.newbox.spider.api.SpiderLoader
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
@@ -35,11 +35,11 @@ class JsSpiderLoader(
     override suspend fun load(config: SpiderSourceConfig): Spider {
         com.github.catvod.Init.set(app)
         spiders[config.key]?.let {
-            Log.d(TAG, "load: cache hit key=${config.key}")
+            Logger.d(TAG, "load: cache hit key=${config.key}")
             return it
         }
 
-        Log.d(TAG, "load: key=${config.key} api=${config.api} jar=${config.jar.orEmpty().take(60)}")
+        Logger.d(TAG, "load: key=${config.key} api=${config.api} jar=${config.jar.orEmpty().take(60)}")
         val jsApiClass = config.jar
             ?.takeIf { it.isNotBlank() }
             ?.let { loadJsApiClass(it) }
@@ -61,11 +61,11 @@ class JsSpiderLoader(
             val cacheDir = File(app.cacheDir, "catvod_jsapi").also { it.mkdirs() }
             val classLoader = DexClassLoader(jarFile.absolutePath, cacheDir.absolutePath, null, app.classLoader)
             val methodClass = classLoader.loadClass("com.github.catvod.js.Method")
-            Log.d(TAG, "loadJsApiClass: success jar=$jarUrl")
+            Logger.d(TAG, "loadJsApiClass: success jar=$jarUrl")
             jsApiClasses[key] = methodClass
             methodClass
         } catch (e: Throwable) {
-            Log.w(TAG, "loadJsApiClass: failed jar=$jarUrl: ${e.message}")
+            Logger.w(TAG, "loadJsApiClass: failed jar=$jarUrl: ${e.message}")
             jsApiClasses[key] = null
             null
         }
@@ -106,7 +106,7 @@ class JsSpiderLoader(
             jarFile.setReadOnly()
             jarFile
         } catch (e: Exception) {
-            Log.w(TAG, "downloadJar: failed url=$url: ${e.message}")
+            Logger.w(TAG, "downloadJar: failed url=$url: ${e.message}")
             null
         }
     }

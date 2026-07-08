@@ -3,7 +3,7 @@ package com.github.tvbox.newbox.spider.jar
 import android.app.Application
 import android.content.Context
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.spider.api.Spider
 import com.github.tvbox.newbox.spider.api.SpiderLoadException
 import com.github.tvbox.newbox.spider.api.SpiderLoader
@@ -53,7 +53,7 @@ class JarSpiderLoader(
                 val result = method.invoke(null, params) as? Array<Any?>
                 if (result != null && result.isNotEmpty()) return result
             } catch (e: Throwable) {
-                Log.w(TAG, "proxyInvoke: ${e.javaClass.simpleName}: ${e.message}")
+                Logger.w(TAG, "proxyInvoke: ${e.javaClass.simpleName}: ${e.message}")
             }
         }
         return null
@@ -65,13 +65,13 @@ class JarSpiderLoader(
             throw SpiderLoadException("非JAR源不能由JarSpiderLoader加载: ${config.api}")
         }
         spiders[config.key]?.let {
-            Log.d(TAG, "load: cache hit key=${config.key}")
+            Logger.d(TAG, "load: cache hit key=${config.key}")
             return it
         }
 
         val clsKey = extractClassName(config.api)
         val jarKey = resolveJarKey(config)
-        Log.d(TAG, "load: key=${config.key} clsKey=$clsKey jarKey.key=${jarKey.key} jarUrl=${jarKey.url.take(60)}")
+        Logger.d(TAG, "load: key=${config.key} clsKey=$clsKey jarKey.key=${jarKey.key} jarUrl=${jarKey.url.take(60)}")
 
         val classLoader = getOrCreateClassLoader(jarKey, config)
         if (classLoader == null) {
@@ -83,21 +83,21 @@ class JarSpiderLoader(
                 .loadClass("com.github.catvod.spider.$clsKey")
                 .getDeclaredConstructor()
                 .newInstance() as? com.github.catvod.crawler.Spider
-            if (legacy == null) return NullSpider().also { Log.w(TAG, "load: class is not Spider key=${config.key} clsKey=$clsKey") }
+            if (legacy == null) return NullSpider().also { Logger.w(TAG, "load: class is not Spider key=${config.key} clsKey=$clsKey") }
 
             val adapted = LegacySpiderAdapter(legacy)
             val ext = config.ext ?: ""
             adapted.init(app, ext)
-            Log.d(TAG, "load: success key=${config.key} clsKey=$clsKey")
+            Logger.d(TAG, "load: success key=${config.key} clsKey=$clsKey")
             adapted
         } catch (e: SpiderLoadException) {
             throw e
         } catch (e: ClassNotFoundException) {
-            Log.w(TAG, "load: class not found key=${config.key} clsKey=$clsKey")
+            Logger.w(TAG, "load: class not found key=${config.key} clsKey=$clsKey")
             NullSpider()
         } catch (e: Throwable) {
             val cause = e.cause ?: e
-            Log.e(TAG, "load: failed key=${config.key} clsKey=$clsKey: ${cause.message}", e)
+            Logger.e(TAG, "load: failed key=${config.key} clsKey=$clsKey: ${cause.message}", e)
             NullSpider()
         }
 
@@ -122,21 +122,21 @@ class JarSpiderLoader(
 
         if (jarKey.key == "main") {
             if (jarKey.url.isBlank()) {
-                Log.w(TAG, "getOrCreateClassLoader: main jar URL is blank")
+                Logger.w(TAG, "getOrCreateClassLoader: main jar URL is blank")
                 return null
             }
             val jarFile = downloadJar(jarKey.url, jarKey.md5, jarKey.isImgJar)
             if (jarFile == null) {
-                Log.e(TAG, "getOrCreateClassLoader: downloadJar returned null for ${jarKey.url}")
+                Logger.e(TAG, "getOrCreateClassLoader: downloadJar returned null for ${jarKey.url}")
                 return null
             }
-            Log.d(TAG, "getOrCreateClassLoader: jar downloaded to ${jarFile.absolutePath} size=${jarFile.length()}")
+            Logger.d(TAG, "getOrCreateClassLoader: jar downloaded to ${jarFile.absolutePath} size=${jarFile.length()}")
             return createDexClassLoader(jarFile, "main")?.also { classLoaders["main"] = it }
         }
 
         val jarFile = downloadJar(jarKey.url, jarKey.md5, jarKey.isImgJar)
         if (jarFile == null) {
-            Log.e(TAG, "getOrCreateClassLoader: downloadJar returned null for ${jarKey.url}")
+            Logger.e(TAG, "getOrCreateClassLoader: downloadJar returned null for ${jarKey.url}")
             return null
         }
         return createDexClassLoader(jarFile, jarKey.key)?.also { classLoaders[jarKey.key] = it }
@@ -154,7 +154,7 @@ class JarSpiderLoader(
                     app.classLoader,
                 )
             } catch (e: SecurityException) {
-                Log.e(TAG, "createDexClassLoader: SecurityException, trying fallback")
+                Logger.e(TAG, "createDexClassLoader: SecurityException, trying fallback")
                 return tryFallbackClassLoader(jarFile, cacheDir)
             }
             if (classLoader != null) {
@@ -179,18 +179,18 @@ class JarSpiderLoader(
                 val initClass = classLoader.loadClass("com.github.catvod.spider.Init")
                 val initMethod = initClass.getMethod("init", Context::class.java)
                 initMethod.invoke(null, app)
-                Log.d(TAG, "initJarSpider: Init.init(app) OK on attempt ${attempt + 1}")
+                Logger.d(TAG, "initJarSpider: Init.init(app) OK on attempt ${attempt + 1}")
                 success = true
             } catch (e: Throwable) {
                 val cause = e.cause ?: e
-                Log.w(TAG, "initJarSpider: attempt ${attempt + 1} failed: ${cause.javaClass.simpleName}: ${cause.message}")
+                Logger.w(TAG, "initJarSpider: attempt ${attempt + 1} failed: ${cause.javaClass.simpleName}: ${cause.message}")
                 if (attempt < 4) {
                     try { Thread.sleep(200) } catch (_: InterruptedException) {}
                 }
             }
         }
         if (!success) {
-            Log.e(TAG, "initJarSpider: Init.init(app) failed after 5 attempts")
+            Logger.e(TAG, "initJarSpider: Init.init(app) failed after 5 attempts")
         }
 
         tryInitOriginContext(classLoader)
@@ -212,27 +212,27 @@ class JarSpiderLoader(
             val loaderMethod = initClass.getMethod("loader")
             val dynamicLoader = loaderMethod.invoke(null) as? ClassLoader
             if (dynamicLoader == null) {
-                Log.w(TAG, "tryInitOriginContext: Init.loader() returned null")
+                Logger.w(TAG, "tryInitOriginContext: Init.loader() returned null")
                 return
             }
-            Log.d(TAG, "tryInitOriginContext: dynamicLoader=$dynamicLoader")
+            Logger.d(TAG, "tryInitOriginContext: dynamicLoader=$dynamicLoader")
 
             val initOriginClass = dynamicLoader.loadClass("com.github.catvod.spider.InitOrigin")
-            Log.d(TAG, "tryInitOriginContext: found InitOrigin class: $initOriginClass")
+            Logger.d(TAG, "tryInitOriginContext: found InitOrigin class: $initOriginClass")
 
             try {
                 val initMethod = initOriginClass.getDeclaredMethod("init", Context::class.java)
                 initMethod.invoke(null, app)
-                Log.d(TAG, "tryInitOriginContext: InitOrigin.init(app) succeeded")
+                Logger.d(TAG, "tryInitOriginContext: InitOrigin.init(app) succeeded")
             } catch (e: NoSuchMethodException) {
-                Log.w(TAG, "tryInitOriginContext: no init(Context) method, trying fields")
+                Logger.w(TAG, "tryInitOriginContext: no init(Context) method, trying fields")
                 injectContextViaFields(initOriginClass)
             } catch (e: java.lang.reflect.InvocationTargetException) {
-                Log.w(TAG, "tryInitOriginContext: init(Context) threw ${e.targetException.javaClass.simpleName}: ${e.targetException.message}, trying field injection")
+                Logger.w(TAG, "tryInitOriginContext: init(Context) threw ${e.targetException.javaClass.simpleName}: ${e.targetException.message}, trying field injection")
                 injectContextViaFields(initOriginClass)
             }
         } catch (e: Throwable) {
-            Log.w(TAG, "tryInitOriginContext: failed: ${e.javaClass.simpleName}: ${e.message}")
+            Logger.w(TAG, "tryInitOriginContext: failed: ${e.javaClass.simpleName}: ${e.message}")
         }
     }
 
@@ -251,12 +251,12 @@ class JarSpiderLoader(
                         val oldValue = field.get(null)
                         if (oldValue == null) {
                             field.set(null, app)
-                            Log.d(TAG, "injectContextViaFields: set ${field.name} = app (was null)")
+                            Logger.d(TAG, "injectContextViaFields: set ${field.name} = app (was null)")
                         } else {
-                            Log.d(TAG, "injectContextViaFields: ${field.name} already set to $oldValue")
+                            Logger.d(TAG, "injectContextViaFields: ${field.name} already set to $oldValue")
                         }
                     } catch (e: Throwable) {
-                        Log.w(TAG, "injectContextViaFields: failed to set ${field.name}: ${e.message}")
+                        Logger.w(TAG, "injectContextViaFields: failed to set ${field.name}: ${e.message}")
                     }
                 }
             }
@@ -268,11 +268,11 @@ class JarSpiderLoader(
             val proxyClass = classLoader.loadClass("com.github.catvod.spider.Proxy")
             val proxyMethod = proxyClass.getMethod("proxy", Map::class.java)
             proxyMethods[jarKey] = proxyMethod
-            Log.d(TAG, "loadProxyClass: Proxy.proxy loaded for jarKey=$jarKey")
+            Logger.d(TAG, "loadProxyClass: Proxy.proxy loaded for jarKey=$jarKey")
         } catch (e: ClassNotFoundException) {
-            Log.d(TAG, "loadProxyClass: no Proxy class in jarKey=$jarKey (OK)")
+            Logger.d(TAG, "loadProxyClass: no Proxy class in jarKey=$jarKey (OK)")
         } catch (e: Throwable) {
-            Log.w(TAG, "loadProxyClass: failed for jarKey=$jarKey: ${e.message}")
+            Logger.w(TAG, "loadProxyClass: failed for jarKey=$jarKey: ${e.message}")
         }
     }
 
@@ -283,7 +283,7 @@ class JarSpiderLoader(
         return try {
             DexClassLoader(roCopy.absolutePath, cacheDir.absolutePath, null, app.classLoader)
         } catch (e: Exception) {
-            Log.e(TAG, "tryFallbackClassLoader: also failed: ${e.message}")
+            Logger.e(TAG, "tryFallbackClassLoader: also failed: ${e.message}")
             null
         }
     }
@@ -321,7 +321,7 @@ class JarSpiderLoader(
             jarFile.setReadOnly()
             jarFile
         } catch (e: Exception) {
-            Log.e(TAG, "downloadJar: failed url=$url: ${e.message}")
+            Logger.e(TAG, "downloadJar: failed url=$url: ${e.message}")
             null
         }
     }

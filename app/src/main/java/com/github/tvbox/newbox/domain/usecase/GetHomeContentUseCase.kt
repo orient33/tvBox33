@@ -9,7 +9,7 @@ import com.github.tvbox.newbox.spider.api.SpiderFactory
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
 import com.github.tvbox.newbox.spider.api.result.CategoryContentResult
 import com.github.tvbox.newbox.spider.api.result.HomeContentResult
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -80,13 +80,13 @@ class GetHomeContentUseCase @Inject constructor(
     private suspend fun HomeContentResult.withHomeVodFallback(loadHomeVod: suspend () -> String): HomeContentResult {
         if (list.isNotEmpty()) return this
         val homeVodJson = loadHomeVod()
-        Log.d("NewBox-Home", "homeVod fallback: ${homeVodJson.length} chars")
+        Logger.d("NewBox-Home", "homeVod fallback: ${homeVodJson.length} chars")
         if (homeVodJson.isBlank()) return this
         val normalizedJson = homeVodJson.trim()
         if (!normalizedJson.startsWith("{")) return this
         return runCatching {
             val homeVod = json.decodeFromString<CategoryContentResult>(normalizedJson)
-            Log.d("NewBox-Home", "homeVod fallback parsed: ${homeVod.list.size} videos")
+            Logger.d("NewBox-Home", "homeVod fallback parsed: ${homeVod.list.size} videos")
             copy(list = homeVod.list)
         }.getOrDefault(this)
     }

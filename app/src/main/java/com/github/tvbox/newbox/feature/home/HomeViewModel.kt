@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.feature.home
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -96,7 +96,7 @@ class HomeViewModel @Inject constructor(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Home load failed: ${e.message}", e)
+            Logger.e(TAG, "Home load failed: ${e.message}", e)
             uiStateFlow.value = HomeUiState.Error(e.message ?: "Unknown error")
         } finally {
             isReloadingFlow.value = false
@@ -161,7 +161,7 @@ class HomeViewModel @Inject constructor(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Load more failed: ${e.message}", e)
+                Logger.e(TAG, "Load more failed: ${e.message}", e)
             } finally {
                 isLoadingMoreFlow.value = false
             }

@@ -6,7 +6,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.text.TextUtils
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -72,11 +72,11 @@ class VideoSniffer(private val context: Context) {
                     }
 
                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                        Log.d(TAG, "onPageStarted: $url")
+                        Logger.d(TAG, "onPageStarted: $url")
                     }
 
                     override fun onPageFinished(view: WebView?, url: String?) {
-                        Log.d(TAG, "onPageFinished: $url")
+                        Logger.d(TAG, "onPageFinished: $url")
                     }
 
                     @SuppressLint("NewApi")
@@ -86,7 +86,7 @@ class VideoSniffer(private val context: Context) {
 
                         if (isVideoFormat(reqUrl) && !foundUrls.contains(reqUrl)) {
                             foundUrls.add(reqUrl)
-                            Log.d(TAG, "FOUND video url: $reqUrl")
+                            Logger.d(TAG, "FOUND video url: $reqUrl")
                             if (!resumed) {
                                 resumed = true
                                 val cookie = CookieManager.getInstance().getCookie(reqUrl)
@@ -112,7 +112,7 @@ class VideoSniffer(private val context: Context) {
                     webView.loadUrl(url)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "sniff error", e)
+                Logger.e(TAG, "sniff error", e)
                 if (!resumed && cont.isActive) {
                     resumed = true
                     cont.resume(null)

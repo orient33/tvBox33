@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.feature.search
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -85,7 +85,7 @@ class SearchViewModel @Inject constructor(
                 }
                 _uiState.value = SearchUiState.Success(results, keyword, totalSources)
             } catch (e: Exception) {
-                Log.e(TAG, "searchFail: keyword=$keyword, error=${e.javaClass.simpleName}: ${e.message}", e)
+                Logger.e(TAG, "searchFail: keyword=$keyword, error=${e.javaClass.simpleName}: ${e.message}", e)
                 _uiState.value = SearchUiState.Error(e.message ?: "Search failed")
             }
         }

@@ -289,10 +289,9 @@ public class JSObject {
                             try {
                                 return functionMethod.invoke(callbackReceiver, args);
                             } catch (Exception e) {
-                                //试试暴力不处理不抛异常
                                 new QuickJSException(
-                                        e.getMessage()).printStackTrace();
-                                return new Object();
+                                        functionName + ": " + e.getMessage()).printStackTrace();
+                                return null;
                             }
                         }
                     });

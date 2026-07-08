@@ -6,7 +6,7 @@ import android.util.Base64;
 
 import com.github.catvod.crawler.Spider;
 import com.github.tvbox.osc.util.FileUtils;
-import com.github.tvbox.osc.util.LOG;
+import com.github.tvbox.osc.util.Logger;
 import com.github.tvbox.osc.util.MD5;
 import com.whl.quickjs.wrapper.Function;
 import com.whl.quickjs.wrapper.JSArray;
@@ -224,7 +224,7 @@ public class NewBoxJsSpider extends Spider {
         ctx.setConsole(new QuickJSContext.Console() {
             @Override
             public void log(String s) {
-                LOG.i("QuJs", s);
+                Logger.i("QuJs", s);
             }
         });
 
@@ -247,7 +247,7 @@ public class NewBoxJsSpider extends Spider {
             if (classes.length >= 1) invokeMultiple(clz, obj);
         } catch (Throwable e) {
             e.printStackTrace();
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
         }
     }
 

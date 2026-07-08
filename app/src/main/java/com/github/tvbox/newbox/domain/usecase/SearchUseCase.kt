@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.domain.usecase
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.domain.BaseUseCase
@@ -69,7 +69,7 @@ class SearchUseCase @Inject constructor(
                 vodItems = vodItems,
             )
         } catch (e: Exception) {
-            Log.e(TAG, "sourceFail: key=${source.key}, name=${source.name}, error=${e.javaClass.simpleName}: ${e.message}", e)
+            Logger.e(TAG, "sourceFail: key=${source.key}, name=${source.name}, error=${e.javaClass.simpleName}: ${e.message}", e)
             SearchResult(source.key, source.name, emptyList())
         }
     }

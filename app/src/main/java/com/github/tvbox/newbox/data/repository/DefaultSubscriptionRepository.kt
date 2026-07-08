@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.data.repository
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.common.ConfigDecoder
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.store.SettingsStore
@@ -77,13 +77,13 @@ class DefaultSubscriptionRepository @Inject constructor(
             val warehousesMap = settingsStore.subscriptionWarehouses.first()
             val currentWarehouseMap = settingsStore.currentWarehouse.first()
             if (saved.isEmpty()) {
-                Log.d(TAG, "init: no saved subscriptions, loading default: $DEFAULT_SUBSCRIPTION_URL")
+                Logger.d(TAG, "init: no saved subscriptions, loading default: $DEFAULT_SUBSCRIPTION_URL")
 //                try { loadSubscription(DEFAULT_SUBSCRIPTION_URL) } catch (e: Exception) {
-//                    Log.e(TAG, "init: failed to load default subscription: ${e.message}")
+//                    Logger.e(TAG, "init: failed to load default subscription: ${e.message}")
 //                }
             } else {
                 saved.forEach { url ->
-                    Log.d(TAG, "init: reloading saved subscription: $url")
+                    Logger.d(TAG, "init: reloading saved subscription: $url")
                     try {
                         val warehouses = warehousesMap[url]
                         if (warehouses != null && warehouses.isNotEmpty()) {
@@ -94,7 +94,7 @@ class DefaultSubscriptionRepository @Inject constructor(
                             loadSubscription(url)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "init: failed to reload $url: ${e.message}")
+                        Logger.e(TAG, "init: failed to reload $url: ${e.message}")
                     }
                 }
             }
@@ -111,16 +111,16 @@ class DefaultSubscriptionRepository @Inject constructor(
 
     override suspend fun loadSubscription(url: String) {
         if (url.isBlank()) {
-            Log.w(TAG, "loadSubscription: blank URL, skipping url=$url")
+            Logger.w(TAG, "loadSubscription: blank URL, skipping url=$url")
             return
         }
-        Log.d(TAG, "loadSubscription: url=$url")
+        Logger.d(TAG, "loadSubscription: url=$url")
 
         val parsed = ConfigDecoder.parseSubscriptionUrl(url)
         settingsStore.addSubscriptionUrl(url)
 
         val body = fetchUrl(parsed.configUrl)
-        Log.d(TAG, "loadSubscription: fetched ${body.length} chars")
+        Logger.d(TAG, "loadSubscription: fetched ${body.length} chars")
 
         val decoded = ConfigDecoder.decode(body, parsed.configKey)
         val fixed = ConfigDecoder.fixPaths(parsed.configUrl, decoded)
@@ -128,30 +128,30 @@ class DefaultSubscriptionRepository @Inject constructor(
         val root = try {
             json.parseToJsonElement(fixed).jsonObject
         } catch (e: Exception) {
-            Log.e(TAG, "loadSubscription: invalid JSON from $url: ${e.message}")
+            Logger.e(TAG, "loadSubscription: invalid JSON from $url: ${e.message}")
             return
         }
         val spiderEl = root["spider"]
         val globalSpider = if (spiderEl is JsonPrimitive && spiderEl != JsonNull) spiderEl.content else ""
-        Log.d(TAG, "loadSubscription: globalSpider=$globalSpider")
+        Logger.d(TAG, "loadSubscription: globalSpider=$globalSpider")
 
         val sites = root["sites"]?.jsonArray?.map { it.jsonObject.toSiteJson() } ?: emptyList()
-        Log.d(TAG, "loadSubscription: parsed ${sites.size} sites")
+        Logger.d(TAG, "loadSubscription: parsed ${sites.size} sites")
         val configs = sites
             .filter { it.api.isNotBlank() }
             .map { it.toSourceConfig(globalSpider = globalSpider, baseUrl = parsed.configUrl) }
             .deduplicateByLast { it.key }
-        Log.d(TAG, "loadSubscription: ${configs.size} valid configs, first=${configs.firstOrNull()?.name}")
+        Logger.d(TAG, "loadSubscription: ${configs.size} valid configs, first=${configs.firstOrNull()?.name}")
         spiderFactory.clearCache()
         _sourcesByUrl[url] = configs
         rebuildSources()
-        Log.d(TAG, "loadSubscription: _sources updated, total=${_sources.value.size} configs")
+        Logger.d(TAG, "loadSubscription: _sources updated, total=${_sources.value.size} configs")
         val currentKey = settingsStore.currentSourceKey.first()
-        Log.d(TAG, "loadSubscription: currentSourceKey=$currentKey")
+        Logger.d(TAG, "loadSubscription: currentSourceKey=$currentKey")
         if (configs.isNotEmpty() && shouldUseFirstSource(configs, currentKey)) {
             val first = configs.first()
             settingsStore.setCurrentSource(first.key)
-            Log.d(TAG, "loadSubscription: auto-selected source: ${first.key} (${first.type})")
+            Logger.d(TAG, "loadSubscription: auto-selected source: ${first.key} (${first.type})")
         }
     }
 
@@ -163,7 +163,7 @@ class DefaultSubscriptionRepository @Inject constructor(
         val root = try {
             json.parseToJsonElement(fixed).jsonObject
         } catch (e: Exception) {
-            Log.e(TAG, "probeSubscription: invalid JSON from $url: ${e.message}")
+            Logger.e(TAG, "probeSubscription: invalid JSON from $url: ${e.message}")
             throw Exception("无效的订阅内容: ${e.message}")
         }
 
@@ -230,25 +230,25 @@ class DefaultSubscriptionRepository @Inject constructor(
 
     override suspend fun loadWarehouse(parentUrl: String, warehouseUrl: String) {
         if (warehouseUrl.isBlank()) return
-        Log.d(TAG, "loadWarehouse: parentUrl=$parentUrl warehouseUrl=$warehouseUrl")
+        Logger.d(TAG, "loadWarehouse: parentUrl=$parentUrl warehouseUrl=$warehouseUrl")
 
         val parsed = ConfigDecoder.parseSubscriptionUrl(warehouseUrl)
-        Log.d(TAG, "loadWarehouse: parsed configUrl=${parsed.configUrl} configKey=${parsed.configKey}")
+        Logger.d(TAG, "loadWarehouse: parsed configUrl=${parsed.configUrl} configKey=${parsed.configKey}")
 
         val body = fetchUrl(parsed.configUrl)
-        Log.d(TAG, "loadWarehouse: body length=${body.length}, preview=${body.take(200)}")
+        Logger.d(TAG, "loadWarehouse: body length=${body.length}, preview=${body.take(200)}")
 
         val decoded = ConfigDecoder.decode(body, parsed.configKey)
-        Log.d(TAG, "loadWarehouse: decoded length=${decoded.length}, preview=${decoded.take(200)}")
+        Logger.d(TAG, "loadWarehouse: decoded length=${decoded.length}, preview=${decoded.take(200)}")
 
         val fixed = ConfigDecoder.fixPaths(parsed.configUrl, decoded)
-        Log.d(TAG, "loadWarehouse: fixed length=${fixed.length}, preview=${fixed.take(200)}")
+        Logger.d(TAG, "loadWarehouse: fixed length=${fixed.length}, preview=${fixed.take(200)}")
 
         val root = try {
             json.parseToJsonElement(fixed).jsonObject
         } catch (e: Exception) {
-            Log.e(TAG, "loadWarehouse: invalid JSON from $warehouseUrl: ${e.message}")
-            Log.e(TAG, "loadWarehouse: fixed content (first 500): ${fixed.take(500)}")
+            Logger.e(TAG, "loadWarehouse: invalid JSON from $warehouseUrl: ${e.message}")
+            Logger.e(TAG, "loadWarehouse: fixed content (first 500): ${fixed.take(500)}")
             return
         }
 
@@ -260,7 +260,7 @@ class DefaultSubscriptionRepository @Inject constructor(
             .filter { it.api.isNotBlank() }
             .map { it.toSourceConfig(globalSpider = globalSpider, baseUrl = parsed.configUrl) }
             .deduplicateByLast { it.key }
-        Log.d(TAG, "loadWarehouse: ${configs.size} configs under parent=$parentUrl")
+        Logger.d(TAG, "loadWarehouse: ${configs.size} configs under parent=$parentUrl")
 
         spiderFactory.clearCache()
         _sourcesByUrl[parentUrl] = configs
@@ -295,7 +295,7 @@ class DefaultSubscriptionRepository @Inject constructor(
         if (trimmed.isBlank()) return@withContext ""
         val request = Request.Builder().url(trimmed).build()
         val response = okHttpClient.newCall(request).execute()
-        Log.d(TAG, "fetchUrl: $trimmed → HTTP ${response.code}")
+        Logger.d(TAG, "fetchUrl: $trimmed → HTTP ${response.code}")
         if (response.isSuccessful) {
             response.body?.string() ?: ""
         } else {

@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.server
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
 import com.github.tvbox.newbox.domain.SourceConfig
 import com.github.tvbox.newbox.spider.api.SpiderFactory
@@ -30,7 +30,7 @@ class SpiderProxyServer(
     fun startServer() {
         start(SOCKET_READ_TIMEOUT, false)
         SpiderProxyServer.activePort = getListeningPort()
-        Log.d(TAG, "SpiderProxyServer started on port ${SpiderProxyServer.activePort}")
+        Logger.d(TAG, "SpiderProxyServer started on port ${SpiderProxyServer.activePort}")
     }
 
     override fun serve(session: IHTTPSession): Response {
@@ -43,7 +43,7 @@ class SpiderProxyServer(
             uri == "/proxy" -> handleProxy(params)
             uri == "/dns-query" -> handleDnsQuery(params)
             else -> {
-                Log.w(TAG, "UNHANDLED: ${session.method} $uri")
+                Logger.w(TAG, "UNHANDLED: ${session.method} $uri")
                 newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_PLAINTEXT, "Not Found")
             }
         }
@@ -77,10 +77,10 @@ class SpiderProxyServer(
                     return buildProxyResponse(result)
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "tryProxyViaFactory: $sourceType failed: ${e.message}")
+                Logger.w(TAG, "tryProxyViaFactory: $sourceType failed: ${e.message}")
             }
         }
-        Log.e(TAG, "tryProxyViaFactory: no loader handled proxy")
+        Logger.e(TAG, "tryProxyViaFactory: no loader handled proxy")
         return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "No loader handled proxy")
     }
 

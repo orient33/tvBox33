@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.domain.usecase
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -54,14 +54,14 @@ class GetDetailUseCase @Inject constructor(
                 spider.detailContent(listOf(params.vodId))
             }
         } catch (e: TimeoutCancellationException) {
-            Log.e(TAG, "detailContent timed out after ${DETAIL_TIMEOUT_MS}ms source=${source.key}/${source.name}, vodId=${params.vodId}")
+            Logger.e(TAG, "detailContent timed out after ${DETAIL_TIMEOUT_MS}ms source=${source.key}/${source.name}, vodId=${params.vodId}")
             throw IllegalStateException("详情加载超时，该源可能不可用")
         } catch (e: Exception) {
-            Log.e(TAG, "detailContent failed source=${source.key}/${source.name}, vodId=${params.vodId}", e)
+            Logger.e(TAG, "detailContent failed source=${source.key}/${source.name}, vodId=${params.vodId}", e)
             throw e
         }
         if (resultJson.isBlank()) {
-            Log.w(TAG, "detailContent blank, fallback to minimal detail source=${source.key}/${source.name}, vodId=${params.vodId}")
+            Logger.w(TAG, "detailContent blank, fallback to minimal detail source=${source.key}/${source.name}, vodId=${params.vodId}")
             return@withContext VodDetail(
                 id = params.vodId,
                 name = "",
@@ -82,7 +82,7 @@ class GetDetailUseCase @Inject constructor(
             parser.parseDetailContent(result, params.sourceKey)
                 ?: throw IllegalStateException("Detail not found for: ${params.vodId}")
         } catch (e: Exception) {
-            Log.e(
+            Logger.e(
                 TAG,
                 "Detail decode/parse failed source=${source.key}/${source.name}, vodId=${params.vodId}, jsonLength=${resultJson.length}, json=${resultJson.logSnippet()}",
                 e,

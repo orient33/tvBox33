@@ -1,7 +1,7 @@
 package com.github.tvbox.newbox.domain.usecase
 
 import android.content.Context
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.common.IoDispatcher
 import com.github.tvbox.newbox.data.parser.SpiderResultParser
 import com.github.tvbox.newbox.data.repository.SubscriptionRepository
@@ -57,27 +57,27 @@ class GetPlayerUrlUseCase @Inject constructor(
                 spider = source.spider,
                 playerUrl = source.playerUrl, playerType = source.playerType,
             ))
-        Log.d(TAG, "playerContent START source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}")
+        Logger.d(TAG, "playerContent START source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}")
         val resultJson = try {
             withTimeout(PLAYER_TIMEOUT_MS) {
                 spider.playerContent(params.flag, params.playUrl, params.vipFlags)
             }
         } catch (e: TimeoutCancellationException) {
-            Log.e(TAG, "playerContent timed out after ${PLAYER_TIMEOUT_MS}ms source=${source.key}/${source.name}, flag=${params.flag}")
+            Logger.e(TAG, "playerContent timed out after ${PLAYER_TIMEOUT_MS}ms source=${source.key}/${source.name}, flag=${params.flag}")
             throw IllegalStateException("解析播放地址超时，该源可能不可用")
         } catch (e: Exception) {
-            Log.e(TAG, "playerContent failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}", e)
+            Logger.e(TAG, "playerContent failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}", e)
             throw e
         }
         val result = try {
             json.decodeFromString<com.github.tvbox.newbox.spider.api.result.PlayerContentResult>(resultJson)
         } catch (e: Exception) {
-            Log.e(TAG, "playerContent JSON parse failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}, error=${e.javaClass.simpleName}: ${e.message}", e)
-            Log.e(TAG, "playerContent raw JSON (first 500 chars): ${resultJson.take(500)}")
+            Logger.e(TAG, "playerContent JSON parse failed source=${source.key}/${source.name}, flag=${params.flag}, playUrl=${params.playUrl}, error=${e.javaClass.simpleName}: ${e.message}", e)
+            Logger.e(TAG, "playerContent raw JSON (first 500 chars): ${resultJson.take(500)}")
             throw IllegalStateException("解析播放地址失败: ${e.message}", e)
         }
         val playerResult = parser.parsePlayerContent(result)
-        Log.d(
+        Logger.d(
             TAG,
             "playerContent RESULT source=${source.key}/${source.name}, parse=${result.parse}, " +
                 "playUrl=${result.playUrl}, url=${playerResult.url}, needSniff=${playerResult.needSniff}",
@@ -89,7 +89,7 @@ class GetPlayerUrlUseCase @Inject constructor(
             } else {
                 playerResult.url
             }
-            Log.d(TAG, "parse==1, sniffing video URL from $sniffUrl")
+            Logger.d(TAG, "parse==1, sniffing video URL from $sniffUrl")
             val sniffer = VideoSniffer(appContext)
             val sniffedUrl = withContext(Dispatchers.Main) {
                 withTimeoutOrNull(SNIFF_TIMEOUT_MS) {
@@ -97,10 +97,10 @@ class GetPlayerUrlUseCase @Inject constructor(
                 }
             }
             if (sniffedUrl != null) {
-                Log.d(TAG, "sniffed video URL: $sniffedUrl")
+                Logger.d(TAG, "sniffed video URL: $sniffedUrl")
                 playerResult.copy(url = sniffedUrl, needSniff = false)
             } else {
-                Log.e(TAG, "sniff failed, no video URL found")
+                Logger.e(TAG, "sniff failed, no video URL found")
                 throw IllegalStateException("嗅探播放地址失败，未找到视频流")
             }
         } else {

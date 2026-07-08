@@ -2,7 +2,7 @@ package com.github.tvbox.osc.util.js;
 
 import android.util.Base64;
 
-import com.github.tvbox.osc.util.LOG;
+import com.github.tvbox.osc.util.Logger;
 import com.whl.quickjs.wrapper.JSArray;
 import com.whl.quickjs.wrapper.JSObject;
 import com.whl.quickjs.wrapper.JSUtils;
@@ -122,7 +122,7 @@ public class Connect {
                 }
             }
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
         }
     }
 }

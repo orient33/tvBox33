@@ -1,7 +1,7 @@
 package com.github.tvbox.newbox.spider.jar
 
 import android.content.Context
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.spider.api.Spider
 import com.github.tvbox.newbox.spider.api.SpiderLoader
 import com.github.tvbox.newbox.spider.api.SpiderSourceConfig
@@ -22,7 +22,7 @@ class T4SpiderLoader(
         type == SourceType.T4 || type == SourceType.HTTP_API
 
     override suspend fun load(config: SpiderSourceConfig): Spider {
-        Log.d(TAG, "load: key=${config.key} api=${config.api}")
+        Logger.d(TAG, "load: key=${config.key} api=${config.api}")
         return if (SourceType.fromCode(config.type) == SourceType.T4) {
             T4Spider(config.api, client)
         } else {
@@ -219,15 +219,15 @@ private fun fetchHttp(client: OkHttpClient, url: String, tag: String): String {
         client.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
             if (response.isSuccessful) {
-                Log.d(tag, "fetch: $url → ${body.length} chars")
+                Logger.d(tag, "fetch: $url → ${body.length} chars")
                 if (body.isBlank()) throw IOException("空响应: $url")
                 return body
             }
-            Log.e(tag, "fetch: $url → HTTP ${response.code}, body=${body.take(200)}")
+            Logger.e(tag, "fetch: $url → HTTP ${response.code}, body=${body.take(200)}")
             throw IOException("HTTP ${response.code}: $url")
         }
     } catch (e: Exception) {
-        Log.e(tag, "fetch: $url → ${e.message}", e)
+        Logger.e(tag, "fetch: $url → ${e.message}", e)
         throw e
     }
 }

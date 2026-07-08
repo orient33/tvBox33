@@ -1,7 +1,7 @@
 package com.github.tvbox.newbox.spider.jar
 
 import android.content.Context
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import com.github.tvbox.newbox.spider.api.Spider
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CompletableFuture
@@ -53,11 +53,11 @@ class LegacySpiderAdapter(
         return try {
             val result = runBlockingCall { legacySpider.detailContent(ids) }
             if (result.isBlank()) {
-                Log.w(TAG, "detailContent returned blank for ids=$ids")
+                Logger.w(TAG, "detailContent returned blank for ids=$ids")
             }
             result
         } catch (e: Exception) {
-            Log.e(TAG, "detailContent: ${e.javaClass.simpleName}: ${e.message}")
+            Logger.e(TAG, "detailContent: ${e.javaClass.simpleName}: ${e.message}")
             throw e
         }
     }
@@ -83,10 +83,10 @@ class LegacySpiderAdapter(
     ): String {
         return try {
             val result = runBlockingCall { legacySpider.playerContent(flag, id, vipFlags) }
-            Log.d(TAG, "playerContent: flag=$flag, id=$id, result=${result.take(500)}")
+            Logger.d(TAG, "playerContent: flag=$flag, id=$id, result=${result.take(500)}")
             result
         } catch (e: Exception) {
-            Log.e(TAG, "playerContent failed: flag=$flag, id=$id, error=${e.javaClass.simpleName}: ${e.message}", e)
+            Logger.e(TAG, "playerContent failed: flag=$flag, id=$id, error=${e.javaClass.simpleName}: ${e.message}", e)
             throw e
         }
     }
@@ -96,7 +96,7 @@ class LegacySpiderAdapter(
             val result = runBlockingCall { legacySpider.proxyLocal(HashMap(params)) }
             if (result != null && result.isNotEmpty()) result else emptyArray()
         } catch (e: Exception) {
-            Log.e(TAG, "proxyLocal: exception=${e.message}", e)
+            Logger.e(TAG, "proxyLocal: exception=${e.message}", e)
             emptyArray()
         }
     }
@@ -106,7 +106,7 @@ class LegacySpiderAdapter(
             val result = runBlockingCall { legacySpider.proxy(HashMap(params)) }
             if (result != null && result.isNotEmpty()) result else emptyArray()
         } catch (e: Exception) {
-            Log.e(TAG, "proxy: exception=${e.message}", e)
+            Logger.e(TAG, "proxy: exception=${e.message}", e)
             emptyArray()
         }
     }

@@ -1,6 +1,6 @@
 package com.github.tvbox.newbox.feature.detailplayer
 
-import android.util.Log
+import com.github.tvbox.osc.util.Logger
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.tvbox.newbox.data.repository.CollectRepository
@@ -69,7 +69,7 @@ class DetailPlayerViewModel @Inject constructor(
                 _detailState.value = DetailUiState.Success(detail)
                 selectInitialEpisode(detail)
             } catch (e: Exception) {
-                Log.e(TAG, "loadDetail FAIL sourceKey=$sourceKey, vodId=$vodId, ${e.javaClass.simpleName}: ${e.message}", e)
+                Logger.e(TAG, "loadDetail FAIL sourceKey=$sourceKey, vodId=$vodId, ${e.javaClass.simpleName}: ${e.message}", e)
                 _detailState.value = DetailUiState.Error(e.message ?: "Failed to load detail")
             }
         }
@@ -126,7 +126,7 @@ class DetailPlayerViewModel @Inject constructor(
                 )
                 _playerState.value = PlayerUiState.Ready(result)
             } catch (e: Exception) {
-                Log.e(TAG, "Play URL resolve failed flag=$flag, url=${episode.url}", e)
+                Logger.e(TAG, "Play URL resolve failed flag=$flag, url=${episode.url}", e)
                 _playerState.value = PlayerUiState.Error(e.message ?: "Failed to get play URL")
             }
         }

@@ -72,7 +72,7 @@ public class FileUtils {
             object.put("data", Base64.encodeToString(data.getBytes(), Base64.URL_SAFE));
             writeSimple(object.toString().getBytes(), open(name));
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
         }
     }
 
@@ -80,7 +80,7 @@ public class FileUtils {
         try {
             writeSimple(byteMerger("//DRPY".getBytes(), Base64.encode(data, Base64.URL_SAFE)), open("B_" + name));
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
         }
     }
 
@@ -134,7 +134,7 @@ public class FileUtils {
                 return get(name.replace("file://", ""));
             }
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
         }
         return name;
     }
@@ -155,7 +155,7 @@ public class FileUtils {
             input.read(data);
             return new String(data, "UTF-8");
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
         }
         return "";
     }
@@ -165,7 +165,7 @@ public class FileUtils {
             output.write(data);
             return true;
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
             return false;
         }
     }
@@ -176,7 +176,7 @@ public class FileUtils {
             input.read(data);
             return data;
         } catch (Exception e) {
-            LOG.e(e);
+            Logger.e("NewBox-JS", e.toString(), e);
             return new byte[0];
         }
     }
