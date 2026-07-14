@@ -33,7 +33,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -61,11 +60,11 @@ import com.github.tvbox.newbox.ui.common.VodCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    modifier: Modifier = Modifier,
     onVodClick: (VodItem) -> Unit,
     onSearchClick: () -> Unit,
     onMineClick: () -> Unit = {},
     onSubscriptionClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -295,24 +294,6 @@ private fun HomeContent(
     onVodClick: (VodItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val gridState = rememberLazyGridState()
-    val hasMore = selectedCategoryId != null &&
-        (homeContent.page.toIntOrNull() ?: 1) < (homeContent.pageCount.toIntOrNull() ?: 1)
-    val shouldLoadMore by remember {
-        derivedStateOf {
-            val layoutInfo = gridState.layoutInfo
-            val totalItemsCount = layoutInfo.totalItemsCount
-            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: return@derivedStateOf false
-            totalItemsCount > 0 && lastVisibleIndex >= totalItemsCount - 6
-        }
-    }
-
-    LaunchedEffect(shouldLoadMore, hasMore, isLoadingMore) {
-        if (shouldLoadMore && hasMore && !isLoadingMore) {
-            onLoadMore()
-        }
-    }
-
     Column(modifier = modifier.fillMaxSize()) {
         if (homeContent.categories.isNotEmpty()) {
             LazyRow(
@@ -326,7 +307,7 @@ private fun HomeContent(
                         label = { Text(stringResource(R.string.home_main_page)) },
                     )
                 }
-                items(homeContent.categories) { category ->
+                items(homeContent.categories, key= {category -> category.id}) { category ->
                     FilterChip(
                         selected = selectedCategoryId == category.id,
                         onClick = { onCategoryClick(category.id) },
@@ -376,15 +357,32 @@ private fun HomeContent(
                 )
             }
         } else {
+            val gridState = rememberLazyGridState()
+            val hasMore = selectedCategoryId != null &&
+                    (homeContent.page.toIntOrNull() ?: 1) < (homeContent.pageCount.toIntOrNull() ?: 1)
+            val shouldLoadMore by remember(gridState) {
+                derivedStateOf {
+                    val layoutInfo = gridState.layoutInfo
+                    val totalItemsCount = layoutInfo.totalItemsCount
+                    val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: return@derivedStateOf false
+                    totalItemsCount > 0 && lastVisibleIndex >= totalItemsCount - 6
+                }
+            }
+
+            LaunchedEffect(shouldLoadMore, hasMore, isLoadingMore) {
+                if (shouldLoadMore && hasMore && !isLoadingMore) {
+                    onLoadMore()
+                }
+            }
             LazyVerticalGrid(
                 modifier = Modifier.weight(1f),
                 state = gridState,
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Adaptive(120.dp),
                 contentPadding = PaddingValues(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(homeContent.videos) { vod ->
+                items(homeContent.videos, key = {v -> v.name }) { vod ->
                     VodCard(item = vod, onClick = onVodClick)
                 }
                 if (isLoadingMore) {
@@ -433,7 +431,7 @@ private fun CategoryFilters(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    items(group.items) { item ->
+                    items(group.items, key = { i -> "${i.key}-${i.value}"}) { item ->
                         FilterChip(
                             selected = selectedFilters[group.key] == item.value,
                             onClick = { onFilterClick(group.key, item.value) },
